@@ -1,7 +1,9 @@
 import { FastifyInstance } from 'fastify'
 import { prisma } from '../lib/prisma'
 import readline from 'readline'
-import { LogLevel } from '@prisma/client'
+import { Readable } from 'node:stream'
+import crypto from 'node:crypto'
+import { LogLevel, Prisma } from '@prisma/client'
 
 export async function uploadRoutes(app: FastifyInstance) {
   app.post('/api/logs/upload', async (request, reply) => {
@@ -11,8 +13,16 @@ export async function uploadRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'Nenhum arquivo encontrado.' })
     }
 
+    const chunks: Buffer[] = []
+    for await (const chunk of data.file) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+    }
+    const buffer = Buffer.concat(chunks)
+
+    const uploadId = crypto.createHash('sha256').update(buffer).digest('hex')
+
     const rl = readline.createInterface({
-      input: data.file,
+      input: Readable.from(buffer),
       crlfDelay: Infinity,
     })
 
@@ -31,22 +41,24 @@ export async function uploadRoutes(app: FastifyInstance) {
         const level = mapLogLevel(levelStr)
 
         if (!isNaN(timestamp.getTime())) {
-          logsToInsert.push({ timestamp, level, message, service })
+          logsToInsert.push({ timestamp, level, message, service, uploadId })
         }
       } else {
         skipped++
       }
 
       if (logsToInsert.length >= BATCH_SIZE) {
-        await prisma.log.createMany({ data: logsToInsert })
-        imported += logsToInsert.length
+        await insertBatch(logsToInsert, (n) => {
+          imported += n
+        })
         logsToInsert.length = 0
       }
     }
 
     if (logsToInsert.length > 0) {
-      await prisma.log.createMany({ data: logsToInsert })
-      imported += logsToInsert.length
+      await insertBatch(logsToInsert, (n) => {
+        imported += n
+      })
     }
 
     return reply.status(201).send({
@@ -55,6 +67,21 @@ export async function uploadRoutes(app: FastifyInstance) {
       skipped,
     })
   })
+}
+
+async function insertBatch(batch: any[], onImported: (n: number) => void) {
+  try {
+    await prisma.log.createMany({ data: batch })
+    onImported(batch.length)
+  } catch (err) {
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === 'P2002'
+    ) {
+      return
+    }
+    throw err
+  }
 }
 
 export function mapLogLevel(level: string): LogLevel {

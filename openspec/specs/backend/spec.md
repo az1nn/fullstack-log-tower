@@ -21,11 +21,12 @@ The system SHALL accept multipart file uploads and ingest parsed log lines into 
 - **WHEN** an uploaded line carries a level not in the `LogLevel` enum (e.g. `TRACE`)
 - **THEN** that level is normalized to `INFO` and the line is still imported (counted in `imported`, not `skipped`)
 
-#### Scenario: Idempotency (append-only, not idempotent)
-- **WHEN** a client re-POSTs the same file or the request is retried after a network error
-- **THEN** the service appends the parsed lines again, creating duplicate rows; the response `imported` count reflects only the rows inserted in that call
-- **AND** the service does NOT dedupe by content, because `Log.id` is a random UUID with no unique constraint on `(timestamp, level, message, service)`
-- **NOTE:** This is an accepted trade-off for a log-ingestion endpoint (logs are naturally append-only). Clients SHOULD avoid double-submitting the same file. Making upload idempotent (e.g. content hash / idempotency key) is out of scope and intentionally not implemented, since real log streams are not deduplicated at ingest.
+#### Scenario: Idempotency (content hash, dedupe on re-upload)
+- **WHEN** a client POSTs a file to `/api/logs/upload`
+- **THEN** the service computes a SHA-256 hash of the full uploaded file content and stamps every inserted row with it as `upload_id` (a nullable, unique column on `Log`)
+- **AND** if the same file is re-POSTed (or a request is retried after a network error) the unique constraint on `upload_id` causes each `createMany` to throw a Prisma P2002 error, which the route catches and skips (counting as `imported: 0` rather than failing or duplicating)
+- **AND** the response is still 201 with `{ message, imported: 0, skipped }` for the duplicate upload, while different files (different hashes) insert normally
+- **NOTE:** `upload_id` is nullable so the seed route and legacy rows remain valid; it is set explicitly by the upload route, never via a schema default.
 
 ### Requirement: List and filter logs
 The system SHALL return paginated logs with optional level, text search, and date-range filters.

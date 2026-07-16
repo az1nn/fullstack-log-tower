@@ -4,6 +4,7 @@ import multipart from '@fastify/multipart'
 import { uploadRoutes } from './upload'
 import { mapLogLevel } from './upload'
 import { setupPrismaMock } from '../test/prisma-mock'
+import { Prisma } from '@prisma/client'
 
 const mockPrisma = vi.hoisted(() => ({
   log: {
@@ -14,6 +15,32 @@ const mockPrisma = vi.hoisted(() => ({
   },
   $queryRaw: vi.fn(),
 }))
+
+function makeP2002Error(): Prisma.PrismaClientKnownRequestError {
+  return new Prisma.PrismaClientKnownRequestError('Unique constraint', {
+    code: 'P2002',
+    clientVersion: '5.22.0',
+  })
+}
+
+function buildMultipartBody(lines: string[]): string {
+  const boundary = '----testboundary'
+  return [
+    `--${boundary}`,
+    'Content-Disposition: form-data; name="file"; filename="test.log"',
+    'Content-Type: text/plain',
+    '',
+    ...lines,
+    `--${boundary}--`,
+    '',
+  ].join('\r\n')
+}
+
+const FILE_LINES = [
+  '[2024-01-01T10:00:00.000Z] [INFO] hello',
+  '[2024-01-01T10:01:00.000Z] [ERROR] something broke',
+  'not a valid line',
+]
 
 vi.mock('../lib/prisma', () => ({ prisma: mockPrisma }))
 
@@ -54,17 +81,7 @@ describe('upload route', () => {
 
   it('ingests parsed log lines and returns 201', async () => {
     const boundary = '----testboundary'
-    const body = [
-      `--${boundary}`,
-      'Content-Disposition: form-data; name="file"; filename="test.log"',
-      'Content-Type: text/plain',
-      '',
-      '[2024-01-01T10:00:00.000Z] [INFO] hello',
-      '[2024-01-01T10:01:00.000Z] [ERROR] something broke',
-      'not a valid line',
-      `--${boundary}--`,
-      '',
-    ].join('\r\n')
+    const body = buildMultipartBody(FILE_LINES)
 
     const res = await app.inject({
       method: 'POST',
@@ -80,19 +97,15 @@ describe('upload route', () => {
     expect(json.imported).toBe(2)
     expect(json.skipped).toBe(1)
     expect(mockPrisma.log.createMany).toHaveBeenCalled()
+    const callArgs = mockPrisma.log.createMany.mock.calls[0][0]
+    expect(callArgs.data[0].uploadId).toMatch(/^[a-f0-9]{64}$/)
   })
 
   it('parses a trailing (service=...) suffix into the service column', async () => {
     const boundary = '----testboundary'
-    const body = [
-      `--${boundary}`,
-      'Content-Disposition: form-data; name="file"; filename="test.log"',
-      'Content-Type: text/plain',
-      '',
+    const body = buildMultipartBody([
       '[2024-01-01T10:00:00.000Z] [INFO] hello (service=auth)',
-      `--${boundary}--`,
-      '',
-    ].join('\r\n')
+    ])
 
     const res = await app.inject({
       method: 'POST',
@@ -116,6 +129,38 @@ describe('upload route', () => {
         }),
       ],
     })
+  })
+
+  it('is idempotent: re-uploading the same file returns imported 0 and 201', async () => {
+    const boundary = '----testboundary'
+    const body = buildMultipartBody(FILE_LINES)
+
+    mockPrisma.log.createMany.mockResolvedValueOnce({ count: 2 })
+
+    const first = await app.inject({
+      method: 'POST',
+      url: '/api/logs/upload',
+      headers: {
+        'content-type': `multipart/form-data; boundary=${boundary}`,
+      },
+      payload: body,
+    })
+    expect(first.statusCode).toBe(201)
+    expect(first.json().imported).toBe(2)
+
+    mockPrisma.log.createMany.mockRejectedValueOnce(makeP2002Error())
+
+    const second = await app.inject({
+      method: 'POST',
+      url: '/api/logs/upload',
+      headers: {
+        'content-type': `multipart/form-data; boundary=${boundary}`,
+      },
+      payload: body,
+    })
+    expect(second.statusCode).toBe(201)
+    expect(second.json().imported).toBe(0)
+    expect(second.json().skipped).toBe(1)
   })
 })
 

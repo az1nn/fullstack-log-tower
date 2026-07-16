@@ -22,8 +22,10 @@ model Log {
   message   String
   service   String?
   createdAt DateTime @default(now())
+  uploadId  String?  @map("upload_id")
 
   @@index([timestamp])
   @@index([level])
   @@index([service])
+  @@unique([uploadId])
 }
