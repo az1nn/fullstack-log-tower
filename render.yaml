@@ -6,7 +6,7 @@ services:
     region: oregon
     healthCheckPath: /api/metrics
     dockerfilePath: ./Dockerfile
-    releaseCommand: npx prisma migrate deploy
+    preDeployCommand: npx prisma migrate deploy
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -23,4 +23,4 @@ databases:
   - name: logtower-db
     plan: free
     region: oregon
-    postgresMajorVersion: 15
+    postgresMajorVersion: "15"
