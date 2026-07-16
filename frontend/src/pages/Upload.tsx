@@ -1,6 +1,7 @@
 import { useState, ChangeEvent, FormEvent, DragEvent } from 'react';
-import { Upload as UploadIcon, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload as UploadIcon, CheckCircle, AlertCircle, FilePlus, X } from 'lucide-react';
 import { api } from '../lib/axios';
+import { generateMockLogs } from '../lib/mockLogs';
 
 const MAX_SIZE = 100 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = ['.txt', '.log'];
@@ -13,6 +14,25 @@ export function Upload() {
   const [errorMessage, setErrorMessage] = useState('');
   const [validationError, setValidationError] = useState('');
   const [importedCount, setImportedCount] = useState(0);
+
+  const [showGenerator, setShowGenerator] = useState(false);
+  const [genCount, setGenCount] = useState(10);
+  const [genDays, setGenDays] = useState(1);
+  const [genService, setGenService] = useState('');
+  const [genMessage, setGenMessage] = useState('');
+
+  const handleGenerate = () => {
+    const text = generateMockLogs({ count: genCount, days: genDays, service: genService || undefined });
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'mock-logs.log';
+    a.click();
+    URL.revokeObjectURL(url);
+    setShowGenerator(false);
+    setGenMessage('Downloaded mock-logs.log — import it above');
+  };
 
   const validateFile = (selected: File): string => {
     const name = selected.name.toLowerCase();
@@ -143,7 +163,106 @@ export function Upload() {
         >
           {isUploading ? 'Enviando...' : 'Iniciar Importação'}
         </button>
+
+        <button
+          type="button"
+          onClick={() => { setGenMessage(''); setShowGenerator(true); }}
+          className="flex items-center justify-center gap-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 py-3 rounded-lg font-medium transition"
+        >
+          <FilePlus className="w-5 h-5" />
+          Generate mock logs
+        </button>
       </form>
+
+      {genMessage && (
+        <div className="mt-4 p-4 bg-emerald-50 text-emerald-700 rounded-lg flex items-center gap-2">
+          <CheckCircle className="w-5 h-5" />
+          <span>{genMessage}</span>
+        </div>
+      )}
+
+      {showGenerator && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+          onClick={() => setShowGenerator(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6 w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-zinc-800">Generate mock logs</h3>
+              <button
+                type="button"
+                onClick={() => setShowGenerator(false)}
+                className="text-zinc-400 hover:text-zinc-600"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">
+                  Count: {genCount}
+                </label>
+                <input
+                  type="range"
+                  min={1}
+                  max={100}
+                  value={genCount}
+                  onChange={(e) => setGenCount(Number(e.target.value))}
+                  className="w-full"
+                />
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={genCount}
+                  onChange={(e) => setGenCount(Number(e.target.value))}
+                  className="mt-1 w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">
+                  Days back
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={30}
+                  value={genDays}
+                  onChange={(e) => setGenDays(Number(e.target.value))}
+                  className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">
+                  Service (optional)
+                </label>
+                <input
+                  type="text"
+                  value={genService}
+                  onChange={(e) => setGenService(e.target.value)}
+                  placeholder="optional, e.g. web"
+                  className="w-full border border-zinc-300 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGenerate}
+                className="bg-zinc-900 text-white py-2.5 rounded-lg font-medium hover:bg-zinc-800 transition"
+              >
+                Generate &amp; download
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {status === 'success' && (
         <div className="mt-4 p-4 bg-emerald-50 text-emerald-700 rounded-lg flex items-center gap-2">
