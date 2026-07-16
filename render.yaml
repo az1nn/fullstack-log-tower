@@ -21,10 +21,7 @@ services:
 
   - type: pserv
     name: logtower-db
-    databaseName: logsdb
     plan: free
     region: oregon
-    postgresMajorVersion: 15
-    disk:
-      name: logtower-db-disk
-      sizeGB: 1
+    engine: postgres
+    version: "15"
