@@ -1,6 +1,7 @@
 import fastify from 'fastify'
 import cors from '@fastify/cors'
 import multipart from '@fastify/multipart'
+import { execSync } from 'node:child_process'
 import { ZodError } from 'zod'
 import { uploadRoutes } from './routes/upload'
 import { getLogsRoute } from './routes/get-logs'
@@ -36,6 +37,17 @@ app.setErrorHandler((error, request, reply) => {
 
 const PORT = Number(process.env.PORT) || 3333
 
-app.listen({ port: PORT, host: '0.0.0.0' }).then(() => {
-  console.log(`🚀 HTTP Server running on http://localhost:${PORT}`)
-})
+async function bootstrap() {
+  try {
+    console.log('Running database migrations...')
+    execSync('npx prisma migrate deploy', { stdio: 'inherit' })
+  } catch (err) {
+    console.error('Migration failed, continuing startup:', err)
+  }
+
+  app.listen({ port: PORT, host: '0.0.0.0' }).then(() => {
+    console.log(`🚀 HTTP Server running on http://localhost:${PORT}`)
+  })
+}
+
+bootstrap()
