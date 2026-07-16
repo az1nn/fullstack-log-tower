@@ -41,6 +41,11 @@ The system SHALL send a selected `.txt`/`.log` file via multipart/form-data to `
 - **THEN** the file is posted as `file` and success/error states are shown
 - **AND** on success the imported count is read from the server response (`imported`); the `skipped` count (unparseable lines) is part of the 201 response
 
+#### Scenario: Prevent double-submit
+- **WHEN** an upload request is in flight (pending server response)
+- **THEN** the submit control is disabled and no further upload of the same file is initiated until the request resolves
+- **RATIONALE:** the backend upload endpoint is append-only and not idempotent (see backend spec); a duplicate submit or network-retry re-POST would create duplicate log rows. The client MUST guard against double-submits so the same file is not uploaded twice.
+
 ## Constraints
 - Axios baseURL is `http://localhost:3333/api`.
 - Styling via Tailwind CSS; icons via lucide-react; charts via recharts.
