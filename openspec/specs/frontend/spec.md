@@ -46,6 +46,20 @@ The system SHALL send a selected `.txt`/`.log` file via multipart/form-data to `
 - **THEN** the submit control is disabled and no further upload of the same file is initiated until the request resolves
 - **RATIONALE:** the backend upload endpoint is append-only and not idempotent (see backend spec); a duplicate submit or network-retry re-POST would create duplicate log rows. The client MUST guard against double-submits so the same file is not uploaded twice.
 
+#### Scenario: Generate mock logs (no backend call)
+- **WHEN** the user clicks "Generate mock logs" on the Upload screen
+- **THEN** a modal opens with controls for count (1–100), days back (1–30), and an optional service name
+- **AND** the generator requires no backend request (pure client-side `generateMockLogs`)
+
+#### Scenario: Generate and download mock logs
+- **WHEN** the user sets options and clicks "Generate & download"
+- **THEN** the system builds `count` lines in `[timestamp] [LEVEL] message (service=name)` format, downloads them as `mock-logs.log` via a Blob object URL, and shows a confirmation message
+- **AND** the generated file is not auto-uploaded; the user imports it manually through the dropzone
+
+#### Scenario: Mock log format validity
+- **WHEN** the generated `mock-logs.log` is later uploaded via the dropzone
+- **THEN** every line is parsed by the existing upload parser (levels from `INFO, WARN, ERROR, DEBUG, FATAL`; optional `service=` suffix)
+
 ### Requirement: Frontend OpenTelemetry tracing
 The system SHALL initialize OpenTelemetry in the browser, exporting traces via OTLP/HTTP when `VITE_OTEL_EXPORTER_OTLP_ENDPOINT` is configured; when unset, tracing is a no-op so no external service is required.
 
