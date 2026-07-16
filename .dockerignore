@@ -1,0 +1,14 @@
+node_modules
+dist
+frontend
+.git
+.github
+.opencode
+openspec
+docs
+*.md
+.env
+.env.example
+docker-compose.yml
+docker-compose.test.yml
+npm-debug.log

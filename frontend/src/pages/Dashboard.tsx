@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { Activity, RefreshCw } from 'lucide-react';
-import { api } from '../lib/axios';
+import { Activity, RefreshCw, WifiOff } from 'lucide-react';
+import { api, isNetworkError } from '../lib/axios';
 
 const LEVELS = ['INFO', 'WARN', 'ERROR', 'DEBUG', 'FATAL'] as const;
 type Level = typeof LEVELS[number];
@@ -52,6 +52,7 @@ export function Dashboard() {
   const [endDate, setEndDate] = useState('');
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function toISO(v: string, end = false) {
     if (!v) return undefined
@@ -72,11 +73,17 @@ export function Dashboard() {
 
   const fetchMetrics = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await api.get('/metrics', { params: buildParams() });
       setData(response.data);
-    } catch (error) {
-      console.error('Erro ao buscar métricas', error);
+    } catch (err) {
+      if (isNetworkError(err)) {
+        setError('Não foi possível conectar ao servidor. Verifique se o backend está rodando em http://localhost:3333.');
+      } else {
+        setError('Erro ao carregar as métricas. Tente novamente.');
+      }
+      console.error('Erro ao buscar métricas', err);
     } finally {
       setLoading(false);
     }
@@ -100,6 +107,29 @@ export function Dashboard() {
       }
     };
   }, [autoRefresh, fetchMetrics]);
+
+  if (!data && !error) return <div className="text-zinc-500">Carregando dashboard...</div>;
+
+  if (error && !data) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div className="bg-red-50 border border-red-200 p-6 rounded-xl flex items-start gap-4">
+          <WifiOff className="w-6 h-6 text-red-500 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-red-700 font-medium">{error}</p>
+            <button
+              onClick={fetchMetrics}
+              disabled={loading}
+              className="mt-3 flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-red-200 text-red-700 hover:bg-red-100 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Tentar novamente
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!data) return <div className="text-zinc-500">Carregando dashboard...</div>;
 

@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { Search, ChevronLeft, ChevronRight, Download, FileJson, X } from 'lucide-react';
-import { api } from '../lib/axios';
+import { Search, ChevronLeft, ChevronRight, Download, FileJson, X, WifiOff } from 'lucide-react';
+import { api, isNetworkError } from '../lib/axios';
 import { downloadCsv, downloadJson, type Log } from '../lib/export';
 
 type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG' | 'FATAL';
@@ -36,6 +36,7 @@ export function Logs() {
   const [endDate, setEndDate] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const buildFilterParams = () => ({
     search: search || undefined,
@@ -46,14 +47,20 @@ export function Logs() {
   });
 
   const fetchLogs = async () => {
+    setError(null);
     try {
       const response = await api.get('/logs', {
         params: { page, ...buildFilterParams() }
       });
       setLogs(response.data.data);
       setTotalPages(response.data.meta.totalPages);
-    } catch (error) {
-      console.error('Erro ao buscar logs', error);
+    } catch (err) {
+      if (isNetworkError(err)) {
+        setError('Não foi possível conectar ao servidor. Verifique se o backend está rodando em http://localhost:3333.');
+      } else {
+        setError('Erro ao carregar os logs. Tente novamente.');
+      }
+      console.error('Erro ao buscar logs', err);
     }
   };
 
@@ -137,6 +144,20 @@ export function Logs() {
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border border-zinc-200">
+      {error && (
+        <div className="mb-4 bg-red-50 border border-red-200 p-4 rounded-xl flex items-start gap-3">
+          <WifiOff className="w-5 h-5 text-red-500 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-red-700 text-sm">{error}</p>
+            <button
+              onClick={fetchLogs}
+              className="mt-2 text-sm text-red-700 underline hover:no-underline"
+            >
+              Tentar novamente
+            </button>
+          </div>
+        </div>
+      )}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-zinc-800">Explorar Logs</h2>
 
