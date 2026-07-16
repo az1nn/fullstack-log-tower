@@ -126,6 +126,31 @@ In CI (`.github/workflows/ci.yml`) this runs automatically on every push/PR.
 Default `npm test` (mocked) always passes without Docker; integration runs only
 where Postgres is available.
 
+## Build & Deploy (Docker / Render / Vercel)
+
+### Local Docker
+Helper scripts:
+- `scripts/install-docker.sh` — installs Docker Engine on Ubuntu/Debian.
+- `scripts/build-and-run.sh` — `docker compose up -d` (Postgres) + `docker build` + run backend on `:3333`.
+  Uses `DATABASE_URL=postgresql://admin:adminpassword@host.docker.internal:5432/logsdb?schema=public`
+  (Linux adds `--add-host=host.docker.internal:host-gateway`).
+
+The backend `Dockerfile` uses `node:20-slim` and installs `libssl1.1` because
+**Prisma 5.22's query engine needs `libssl.so.1.1`** (Debian 12 ships OpenSSL 3 only).
+Migrations run at startup via `prisma migrate deploy` in `src/server.ts` (the free
+Render tier has no `preDeployCommand`).
+
+### Render (backend)
+- `render.yaml` defines a `web` service (`runtime: docker`, free) + a `databases:` Postgres 15 (free).
+  `DATABASE_URL` is injected from the DB; set `CORS_ORIGINS` to the Vercel URL on creation.
+- Free tier notes: no `preDeployCommand` (migrations run at startup), web service sleeps after
+  15 min idle, free Postgres expires after 30 days.
+
+### Vercel (frontend)
+- `frontend/vercel.json` sets `framework: vite`, `outputDirectory: dist`, SPA rewrite.
+- Set env var `VITE_API_URL` = `https://<render-service>.onrender.com/api` (build-time).
+- `frontend/src/lib/axios.ts` reads `VITE_API_URL`, falls back to `http://localhost:3333/api`.
+
 ## Phase 4: Repeat / Commit
 
 - **More tasks:** return to Phase 1.
