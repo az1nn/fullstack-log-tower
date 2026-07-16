@@ -19,9 +19,8 @@ services:
       - key: NODE_ENV
         value: production
 
-  - type: pserv
-    name: logtower-db
+databases:
+  - name: logtower-db
     plan: free
     region: oregon
-    engine: postgres
-    version: "15"
+    postgresMajorVersion: 15
