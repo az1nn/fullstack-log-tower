@@ -161,6 +161,8 @@ describe('upload route', () => {
     expect(second.statusCode).toBe(201)
     expect(second.json().imported).toBe(0)
     expect(second.json().skipped).toBe(1)
+    expect(second.json().duplicates).toBe(2)
+    expect(second.json().message).toMatch(/já importado|duplicad/i)
   })
 })
 

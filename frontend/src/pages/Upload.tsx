@@ -13,13 +13,13 @@ export function Upload() {
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [validationError, setValidationError] = useState('');
-  const [importedCount, setImportedCount] = useState(0);
 
   const [showGenerator, setShowGenerator] = useState(false);
   const [genCount, setGenCount] = useState(10);
   const [genDays, setGenDays] = useState(1);
   const [genService, setGenService] = useState('');
   const [genMessage, setGenMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleGenerate = () => {
     const text = generateMockLogs({ count: genCount, days: genDays, service: genService || undefined });
@@ -100,7 +100,12 @@ export function Upload() {
         },
       });
       setStatus('success');
-      setImportedCount(response.data.imported ?? 0);
+      const dup = response.data.duplicates ?? 0;
+      setSuccessMessage(
+        dup > 0
+          ? `${response.data.imported ?? 0} log(s) importado(s); ${dup} duplicado(s) ignorado(s).`
+          : `${response.data.imported ?? 0} logs importados com sucesso!`,
+      );
       setFile(null);
     } catch (error: any) {
       setStatus('error');
@@ -267,7 +272,7 @@ export function Upload() {
       {status === 'success' && (
         <div className="mt-4 p-4 bg-emerald-50 text-emerald-700 rounded-lg flex items-center gap-2">
           <CheckCircle className="w-5 h-5" />
-          <span>{importedCount} logs importados com sucesso!</span>
+          <span>{successMessage}</span>
         </div>
       )}
 

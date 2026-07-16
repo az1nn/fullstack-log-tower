@@ -24,8 +24,9 @@ The system SHALL accept multipart file uploads and ingest parsed log lines into 
 #### Scenario: Idempotency (content hash, dedupe on re-upload)
 - **WHEN** a client POSTs a file to `/api/logs/upload`
 - **THEN** the service computes a SHA-256 hash of the full uploaded file content and stamps every inserted row with it as `upload_id` (a nullable, unique column on `Log`)
-- **AND** if the same file is re-POSTed (or a request is retried after a network error) the unique constraint on `upload_id` causes each `createMany` to throw a Prisma P2002 error, which the route catches and skips (counting as `imported: 0` rather than failing or duplicating)
-- **AND** the response is still 201 with `{ message, imported: 0, skipped }` for the duplicate upload, while different files (different hashes) insert normally
+- **AND** if the same file is re-POSTed (or a request is retried after a network error) the unique constraint on `upload_id` causes each `createMany` to throw a Prisma P2002 error, which the route catches and counts as `duplicates` (rather than failing or duplicating)
+- **AND** the response is 201 with `{ message, imported, skipped, duplicates }`; for a fully duplicate upload `imported` is `0` and `duplicates` equals the number of dropped rows, and `message` states the file was already imported (so the user can distinguish deduped from unparsed)
+- **AND** different files (different hashes) insert normally
 - **NOTE:** `upload_id` is nullable so the seed route and legacy rows remain valid; it is set explicitly by the upload route, never via a schema default.
 
 ### Requirement: List and filter logs

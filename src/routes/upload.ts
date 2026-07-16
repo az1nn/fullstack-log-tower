@@ -30,6 +30,7 @@ export async function uploadRoutes(app: FastifyInstance) {
     const BATCH_SIZE = 1000
     let imported = 0
     let skipped = 0
+    let duplicates = 0
     const logPattern = /^\[(.*?)\]\s+\[(.*?)\]\s+(.*?)(?:\s+\(service=(.*?)\))?\s*$/
 
     for await (const line of rl) {
@@ -48,28 +49,53 @@ export async function uploadRoutes(app: FastifyInstance) {
       }
 
       if (logsToInsert.length >= BATCH_SIZE) {
-        await insertBatch(logsToInsert, (n) => {
-          imported += n
-        })
+        await insertBatch(
+          logsToInsert,
+          (n) => {
+            imported += n
+          },
+          (n) => {
+            duplicates += n
+          },
+        )
         logsToInsert.length = 0
       }
     }
 
     if (logsToInsert.length > 0) {
-      await insertBatch(logsToInsert, (n) => {
-        imported += n
-      })
+      await insertBatch(
+        logsToInsert,
+        (n) => {
+          imported += n
+        },
+        (n) => {
+          duplicates += n
+        },
+      )
+    }
+
+    let message = 'Arquivo processado e logs importados com sucesso!'
+    if (duplicates > 0) {
+      message =
+        imported > 0
+          ? `${imported} log(s) importado(s); ${duplicates} duplicado(s) ignorado(s).`
+          : 'Arquivo já importado anteriormente (logs duplicados ignorados).'
     }
 
     return reply.status(201).send({
-      message: 'Arquivo processado e logs importados com sucesso!',
+      message,
       imported,
       skipped,
+      duplicates,
     })
   })
 }
 
-async function insertBatch(batch: any[], onImported: (n: number) => void) {
+async function insertBatch(
+  batch: any[],
+  onImported: (n: number) => void,
+  onDuplicate: (n: number) => void,
+) {
   try {
     await prisma.log.createMany({ data: batch })
     onImported(batch.length)
@@ -78,6 +104,7 @@ async function insertBatch(batch: any[], onImported: (n: number) => void) {
       err instanceof Prisma.PrismaClientKnownRequestError &&
       err.code === 'P2002'
     ) {
+      onDuplicate(batch.length)
       return
     }
     throw err
