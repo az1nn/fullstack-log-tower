@@ -5,7 +5,7 @@ The system SHALL accept multipart file uploads, ingest parsed log lines in batch
 
 #### Scenario: Successful upload
 - **WHEN** a client POSTs a valid `.txt`/`.log` file to `/api/logs/upload`
-- **THEN** parsed lines are inserted in batches of 1000 and the service returns 201 with `{ message, imported: number }`
+- **THEN** parsed lines are inserted in batches of 1000 and the service returns 201 with `{ message, imported: number, skipped: number }`
 
 ## ADDED Requirements
 
