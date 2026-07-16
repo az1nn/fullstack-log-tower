@@ -4,7 +4,6 @@ import multipart from '@fastify/multipart'
 import { uploadRoutes } from './upload'
 import { mapLogLevel } from './upload'
 import { setupPrismaMock } from '../test/prisma-mock'
-import { Prisma } from '@prisma/client'
 
 const mockPrisma = vi.hoisted(() => ({
   log: {
@@ -15,13 +14,6 @@ const mockPrisma = vi.hoisted(() => ({
   },
   $queryRaw: vi.fn(),
 }))
-
-function makeP2002Error(): Prisma.PrismaClientKnownRequestError {
-  return new Prisma.PrismaClientKnownRequestError('Unique constraint', {
-    code: 'P2002',
-    clientVersion: '5.22.0',
-  })
-}
 
 function buildMultipartBody(lines: string[]): string {
   const boundary = '----testboundary'
@@ -97,8 +89,6 @@ describe('upload route', () => {
     expect(json.imported).toBe(2)
     expect(json.skipped).toBe(1)
     expect(mockPrisma.log.createMany).toHaveBeenCalled()
-    const callArgs = mockPrisma.log.createMany.mock.calls[0][0]
-    expect(callArgs.data[0].uploadId).toMatch(/^[a-f0-9]{64}$/)
   })
 
   it('parses a trailing (service=...) suffix into the service column', async () => {
@@ -131,11 +121,9 @@ describe('upload route', () => {
     })
   })
 
-  it('is idempotent: re-uploading the same file returns imported 0 and 201', async () => {
+  it('re-uploading the same file inserts again (idempotency disabled)', async () => {
     const boundary = '----testboundary'
     const body = buildMultipartBody(FILE_LINES)
-
-    mockPrisma.log.createMany.mockResolvedValueOnce({ count: 2 })
 
     const first = await app.inject({
       method: 'POST',
@@ -148,8 +136,6 @@ describe('upload route', () => {
     expect(first.statusCode).toBe(201)
     expect(first.json().imported).toBe(2)
 
-    mockPrisma.log.createMany.mockRejectedValueOnce(makeP2002Error())
-
     const second = await app.inject({
       method: 'POST',
       url: '/api/logs/upload',
@@ -159,10 +145,8 @@ describe('upload route', () => {
       payload: body,
     })
     expect(second.statusCode).toBe(201)
-    expect(second.json().imported).toBe(0)
+    expect(second.json().imported).toBe(2)
     expect(second.json().skipped).toBe(1)
-    expect(second.json().duplicates).toBe(2)
-    expect(second.json().message).toMatch(/já importado|duplicad/i)
   })
 })
 

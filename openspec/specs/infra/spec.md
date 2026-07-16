@@ -17,7 +17,7 @@ The system SHALL define the database model in `prisma/schema.prisma` and consume
 - **WHEN** `prisma migrate dev` runs against the configured `DATABASE_URL`
 - **THEN** the `Log` table and `LogLevel` enum are created per the schema
 - **AND** migrations are applied in production via `prisma migrate deploy` at server startup (the free Render tier has no `preDeployCommand`)
-- **AND** a second migration (`1_upload_id`) adds the nullable `upload_id` column and a unique index `Log_upload_id_key` for per-file idempotent uploads, alongside the original `0_init` migration
+- **AND** a second migration (`1_upload_id`) previously added a nullable `upload_id` column and a unique index `Log_upload_id_key` for per-file idempotent uploads; this was **dropped** in migration `2_drop_upload_id` because idempotency was disabled (see backend spec "Idempotency" rationale). The original `0_init` migration remains.
 
 ### Requirement: Provide connection config
 The system SHALL expose `DATABASE_URL` so Prisma and the backend connect to the local database.

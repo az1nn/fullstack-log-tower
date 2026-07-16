@@ -21,13 +21,10 @@ The system SHALL accept multipart file uploads and ingest parsed log lines into 
 - **WHEN** an uploaded line carries a level not in the `LogLevel` enum (e.g. `TRACE`)
 - **THEN** that level is normalized to `INFO` and the line is still imported (counted in `imported`, not `skipped`)
 
-#### Scenario: Idempotency (content hash, dedupe on re-upload)
+#### Scenario: Idempotency (currently disabled)
 - **WHEN** a client POSTs a file to `/api/logs/upload`
-- **THEN** the service computes a SHA-256 hash of the full uploaded file content and stamps every inserted row with it as `upload_id` (a nullable, unique column on `Log`)
-- **AND** if the same file is re-POSTed (or a request is retried after a network error) the unique constraint on `upload_id` causes each `createMany` to throw a Prisma P2002 error, which the route catches and counts as `duplicates` (rather than failing or duplicating)
-- **AND** the response is 201 with `{ message, imported, skipped, duplicates }`; for a fully duplicate upload `imported` is `0` and `duplicates` equals the number of dropped rows, and `message` states the file was already imported (so the user can distinguish deduped from unparsed)
-- **AND** different files (different hashes) insert normally
-- **NOTE:** `upload_id` is nullable so the seed route and legacy rows remain valid; it is set explicitly by the upload route, never via a schema default.
+- **THEN** every parsed line is inserted; re-uploading the same file inserts the rows again (no dedupe)
+- **RATIONALE:** idempotency (SHA-256 `upload_id` unique column + P2002 handling) was removed because it surfaced as a broken UX — re-importing generated or identical logs returned `imported: 0` / `duplicates: N` with no clear reason, making it look like logs were lost. Idempotency will be re-added later with a clearer design (e.g. an explicit "replace/upsert" option or a visible duplicate report). The `upload_id` column and its unique index were dropped in migration `2_drop_upload_id`.
 
 ### Requirement: List and filter logs
 The system SHALL return paginated logs with optional level, text search, and date-range filters.

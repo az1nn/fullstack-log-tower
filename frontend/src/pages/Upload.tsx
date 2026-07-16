@@ -39,7 +39,7 @@ export function Upload() {
 
     void uploadFile(file);
     setShowGenerator(false);
-    setGenMessage('Generating & importing mock logs…');
+    setGenMessage('');
   };
 
   const validateFile = (selected: File): string => {
@@ -111,14 +111,8 @@ export function Upload() {
       });
       setStatus('success');
       const imported = response.data.imported ?? 0;
-      const dup = response.data.duplicates ?? 0;
-      setSuccessMessage(
-        imported === 0 && dup > 0
-          ? 'Arquivo já importado anteriormente (logs duplicados ignorados).'
-          : dup > 0
-            ? `${imported} log(s) importado(s); ${dup} duplicado(s) ignorado(s).`
-            : `${imported} logs importados com sucesso!`,
-      );
+      setSuccessMessage(`${imported} log(s) importado(s) com sucesso!`);
+      setGenMessage('');
       setFile(null);
     } catch (error: any) {
       setStatus('error');
@@ -192,12 +186,22 @@ export function Upload() {
         </button>
       </form>
 
-      {genMessage && (
+      {status === 'error' ? (
+        <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-lg flex items-center gap-2">
+          <AlertCircle className="w-5 h-5" />
+          <span>{errorMessage || 'Erro ao processar o arquivo. Verifique o formato e tente novamente.'}</span>
+        </div>
+      ) : status === 'success' ? (
+        <div className="mt-4 p-4 bg-emerald-50 text-emerald-700 rounded-lg flex items-center gap-2">
+          <CheckCircle className="w-5 h-5" />
+          <span>{successMessage}</span>
+        </div>
+      ) : genMessage ? (
         <div className="mt-4 p-4 bg-emerald-50 text-emerald-700 rounded-lg flex items-center gap-2">
           <CheckCircle className="w-5 h-5" />
           <span>{genMessage}</span>
         </div>
-      )}
+      ) : null}
 
       {showGenerator && (
         <div
@@ -287,20 +291,6 @@ export function Upload() {
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {status === 'success' && (
-        <div className="mt-4 p-4 bg-emerald-50 text-emerald-700 rounded-lg flex items-center gap-2">
-          <CheckCircle className="w-5 h-5" />
-          <span>{successMessage}</span>
-        </div>
-      )}
-
-      {status === 'error' && (
-        <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-lg flex items-center gap-2">
-          <AlertCircle className="w-5 h-5" />
-          <span>{errorMessage || 'Erro ao processar o arquivo. Verifique o formato e tente novamente.'}</span>
         </div>
       )}
     </div>

@@ -2,8 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { prisma } from '../lib/prisma'
 import readline from 'readline'
 import { Readable } from 'node:stream'
-import crypto from 'node:crypto'
-import { LogLevel, Prisma } from '@prisma/client'
+import { LogLevel } from '@prisma/client'
 
 export async function uploadRoutes(app: FastifyInstance) {
   app.post('/api/logs/upload', async (request, reply) => {
@@ -19,8 +18,6 @@ export async function uploadRoutes(app: FastifyInstance) {
     }
     const buffer = Buffer.concat(chunks)
 
-    const uploadId = crypto.createHash('sha256').update(buffer).digest('hex')
-
     const rl = readline.createInterface({
       input: Readable.from(buffer),
       crlfDelay: Infinity,
@@ -30,7 +27,6 @@ export async function uploadRoutes(app: FastifyInstance) {
     const BATCH_SIZE = 1000
     let imported = 0
     let skipped = 0
-    let duplicates = 0
     const logPattern = /^\[(.*?)\]\s+\[(.*?)\]\s+(.*?)(?:\s+\(service=(.*?)\))?\s*$/
 
     for await (const line of rl) {
@@ -42,73 +38,34 @@ export async function uploadRoutes(app: FastifyInstance) {
         const level = mapLogLevel(levelStr)
 
         if (!isNaN(timestamp.getTime())) {
-          logsToInsert.push({ timestamp, level, message, service, uploadId })
+          logsToInsert.push({ timestamp, level, message, service })
         }
       } else {
         skipped++
       }
 
       if (logsToInsert.length >= BATCH_SIZE) {
-        await insertBatch(
-          logsToInsert,
-          (n) => {
-            imported += n
-          },
-          (n) => {
-            duplicates += n
-          },
-        )
+        await insertBatch(logsToInsert)
+        imported += logsToInsert.length
         logsToInsert.length = 0
       }
     }
 
     if (logsToInsert.length > 0) {
-      await insertBatch(
-        logsToInsert,
-        (n) => {
-          imported += n
-        },
-        (n) => {
-          duplicates += n
-        },
-      )
-    }
-
-    let message = 'Arquivo processado e logs importados com sucesso!'
-    if (duplicates > 0) {
-      message =
-        imported > 0
-          ? `${imported} log(s) importado(s); ${duplicates} duplicado(s) ignorado(s).`
-          : 'Arquivo já importado anteriormente (logs duplicados ignorados).'
+      await insertBatch(logsToInsert)
+      imported += logsToInsert.length
     }
 
     return reply.status(201).send({
-      message,
+      message: 'Arquivo processado e logs importados com sucesso!',
       imported,
       skipped,
-      duplicates,
     })
   })
 }
 
-async function insertBatch(
-  batch: any[],
-  onImported: (n: number) => void,
-  onDuplicate: (n: number) => void,
-) {
-  try {
-    await prisma.log.createMany({ data: batch })
-    onImported(batch.length)
-  } catch (err) {
-    if (
-      err instanceof Prisma.PrismaClientKnownRequestError &&
-      err.code === 'P2002'
-    ) {
-      onDuplicate(batch.length)
-      return
-    }
-    throw err
-  }
+async function insertBatch(batch: any[]) {
+  await prisma.log.createMany({ data: batch })
 }
 
 export function mapLogLevel(level: string): LogLevel {

@@ -87,7 +87,7 @@ Do NOT skip straight to code. Wait for user approval of the spec before implemen
 
 ### API Contracts (current)
 
-- `POST /api/logs/upload` — multipart `file` field; 201 `{ message, imported, skipped, duplicates }`; 400 `{ error }`. (`duplicates` counts rows dropped by the unique `upload_id` constraint on re-upload.)
+- `POST /api/logs/upload` — multipart `file` field; 201 `{ message, imported, skipped }`; 400 `{ error }`. (Idempotency via `upload_id` is currently disabled — re-uploads insert again.)
 - `GET /api/logs` — query `page`, `perPage` (1–100), `level`, `levels[]`, `service`, `search`, `startDate`, `endDate` (ISO). Response `{ data, meta }`.
 - `GET /api/metrics` — query `startDate?`, `endDate?`. Response `{ summary, distribution, trends, trendsByLevel }`.
 - `POST /api/seed` — query `count`, `days`. Response `{ message, imported, total }`.

@@ -37,7 +37,7 @@ describe('generateMockLogs', () => {
     expect(generateMockLogs({ count: 0, days: 1 }).split('\n').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('produces unique content per call (never dedupes on re-import)', () => {
+  it('produces random content per call', () => {
     const a = generateMockLogs({ count: 15, days: 1 });
     const b = generateMockLogs({ count: 15, days: 1 });
     expect(a).not.toBe(b);

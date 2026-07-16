@@ -64,7 +64,7 @@ describe('Upload page', () => {
 
     await userEvent.click(button);
 
-    expect(await screen.findByText('5 logs importados com sucesso!')).toBeInTheDocument();
+    expect(await screen.findByText('5 log(s) importado(s) com sucesso!')).toBeInTheDocument();
     expect(api.post).toHaveBeenCalledWith('/logs/upload', expect.any(FormData), expect.any(Object));
   });
 
