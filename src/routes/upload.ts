@@ -19,19 +19,22 @@ export async function uploadRoutes(app: FastifyInstance) {
     const logsToInsert: any[] = []
     const BATCH_SIZE = 1000
     let imported = 0
-    const logPattern = /^\[(.*?)\]\s+\[(.*?)\]\s+(.*)$/
+    let skipped = 0
+    const logPattern = /^\[(.*?)\]\s+\[(.*?)\]\s+(.*?)(?:\s+\(service=(.*?)\))?\s*$/
 
     for await (const line of rl) {
       const match = line.match(logPattern)
 
       if (match) {
-        const [, dateString, levelStr, message] = match
+        const [, dateString, levelStr, message, service] = match
         const timestamp = new Date(dateString)
         const level = mapLogLevel(levelStr)
 
         if (!isNaN(timestamp.getTime())) {
-          logsToInsert.push({ timestamp, level, message })
+          logsToInsert.push({ timestamp, level, message, service })
         }
+      } else {
+        skipped++
       }
 
       if (logsToInsert.length >= BATCH_SIZE) {
@@ -49,6 +52,7 @@ export async function uploadRoutes(app: FastifyInstance) {
     return reply.status(201).send({
       message: 'Arquivo processado e logs importados com sucesso!',
       imported,
+      skipped,
     })
   })
 }

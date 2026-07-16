@@ -16,6 +16,12 @@ The system SHALL let users filter logs by severity (multi-select), service, and 
 ### Requirement: List and filter logs
 The system SHALL return paginated logs with optional level, multi-level, service, text search, and date-range filters.
 
+If both `level` and `levels` are provided, `levels` takes precedence and `level` is ignored.
+
 #### Scenario: Filtered, paginated query
 - **WHEN** a client GETs `/api/logs` with `page`, `perPage`, `level`, `levels`, `service`, `search`, `startDate`, `endDate`
 - **THEN** the service returns `data` and `meta` ordered by timestamp desc, honoring all provided filters
+
+#### Scenario: Level filter precedence
+- **WHEN** a client GETs `/api/logs` with both `level=INFO` and `levels=ERROR,WARN`
+- **THEN** the `levels` filter is applied and `level` is ignored (only ERROR and WARN logs are returned)

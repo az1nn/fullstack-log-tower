@@ -78,7 +78,44 @@ describe('upload route', () => {
     expect(res.statusCode).toBe(201)
     const json = res.json()
     expect(json.imported).toBe(2)
+    expect(json.skipped).toBe(1)
     expect(mockPrisma.log.createMany).toHaveBeenCalled()
+  })
+
+  it('parses a trailing (service=...) suffix into the service column', async () => {
+    const boundary = '----testboundary'
+    const body = [
+      `--${boundary}`,
+      'Content-Disposition: form-data; name="file"; filename="test.log"',
+      'Content-Type: text/plain',
+      '',
+      '[2024-01-01T10:00:00.000Z] [INFO] hello (service=auth)',
+      `--${boundary}--`,
+      '',
+    ].join('\r\n')
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/logs/upload',
+      headers: {
+        'content-type': `multipart/form-data; boundary=${boundary}`,
+      },
+      payload: body,
+    })
+
+    expect(res.statusCode).toBe(201)
+    const json = res.json()
+    expect(json.imported).toBe(1)
+    expect(json.skipped).toBe(0)
+    expect(mockPrisma.log.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          level: 'INFO',
+          message: 'hello',
+          service: 'auth',
+        }),
+      ],
+    })
   })
 })
 

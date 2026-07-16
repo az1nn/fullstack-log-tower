@@ -18,6 +18,8 @@ The system SHALL accept multipart file uploads and ingest parsed log lines into 
 ### Requirement: List and filter logs
 The system SHALL return paginated logs with optional level, text search, and date-range filters.
 
+If both `level` and `levels` are provided, `levels` takes precedence and `level` is ignored.
+
 #### Scenario: Filtered, paginated query
 - **WHEN** a client GETs `/api/logs` with `page`, `perPage`, `level`, `search`, `startDate`, `endDate`
 - **THEN** the service returns `data` and `meta` (totalItems, totalPages, currentPage, perPage, hasNextPage, hasPreviousPage) ordered by timestamp desc

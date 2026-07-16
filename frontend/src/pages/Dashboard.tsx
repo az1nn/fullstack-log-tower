@@ -53,11 +53,18 @@ export function Dashboard() {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  function toISO(v: string, end = false) {
+    if (!v) return undefined
+    return new Date(v + (end ? 'T23:59:59.999Z' : 'T00:00:00.000Z')).toISOString()
+  }
+
   const buildParams = useCallback(() => {
     if (preset === 'custom') {
       const params: Record<string, string> = {};
-      if (startDate) params.startDate = new Date(startDate).toISOString();
-      if (endDate) params.endDate = new Date(endDate).toISOString();
+      const s = toISO(startDate);
+      const e = toISO(endDate, true);
+      if (s) params.startDate = s;
+      if (e) params.endDate = e;
       return params;
     }
     return presetRange(preset);
