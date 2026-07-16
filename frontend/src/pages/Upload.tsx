@@ -12,6 +12,7 @@ export function Upload() {
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [validationError, setValidationError] = useState('');
+  const [importedCount, setImportedCount] = useState(0);
 
   const validateFile = (selected: File): string => {
     const name = selected.name.toLowerCase();
@@ -95,8 +96,6 @@ export function Upload() {
       setIsUploading(false);
     }
   };
-
-  const [importedCount, setImportedCount] = useState(0);
 
   return (
     <div className="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-zinc-200">

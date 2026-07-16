@@ -9,7 +9,9 @@ import { seedRoutes } from './routes/seed'
 
 const app = fastify({ logger: true })
 
-app.register(cors, { origin: true })
+app.register(cors, {
+  origin: process.env.CORS_ORIGINS?.split(',').map((o) => o.trim()) ?? ['http://localhost:5173'],
+})
 
 app.register(multipart, {
   limits: { fileSize: 100 * 1024 * 1024 },

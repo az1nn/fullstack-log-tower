@@ -42,7 +42,10 @@ describe('metrics route', () => {
     expect(Array.isArray(json.distribution)).toBe(true)
     expect(json.distribution).toEqual([
       { level: 'INFO', count: 5 },
+      { level: 'WARN', count: 0 },
       { level: 'ERROR', count: 2 },
+      { level: 'DEBUG', count: 0 },
+      { level: 'FATAL', count: 0 },
     ])
     expect(Array.isArray(json.trends)).toBe(true)
     expect(Array.isArray(json.trendsByLevel)).toBe(true)

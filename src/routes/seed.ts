@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
-import { generateLogs } from '../scripts/seed'
+import { generateLogs, insertLogsInBatches } from '../scripts/seed'
 
 const seedQuerySchema = z.object({
   count: z.coerce.number().min(1).max(50000).default(1000),
@@ -14,12 +14,9 @@ export async function seedRoutes(app: FastifyInstance) {
 
     const logs = generateLogs(count, days)
 
-    const BATCH = 1000
-    for (let i = 0; i < logs.length; i += BATCH) {
-      await prisma.log.createMany({ data: logs.slice(i, i + BATCH) })
-    }
+    const imported = await insertLogsInBatches(prisma, logs)
 
     const total = await prisma.log.count()
-    return reply.status(201).send({ message: 'Mock logs generated', imported: logs.length, total })
+    return reply.status(201).send({ message: 'Mock logs generated', imported, total })
   })
 }

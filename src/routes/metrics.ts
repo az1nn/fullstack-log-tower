@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
+import { LogLevel } from '@prisma/client'
 
 const metricsQuerySchema = z.object({
   startDate: z.string().datetime().optional(),
@@ -37,9 +38,14 @@ export async function metricsRoute(app: FastifyInstance) {
       },
     })
 
-    const distribution = logsByLevel.map((item) => ({
-      level: item.level,
-      count: item._count._all,
+    const ALL_LEVELS: LogLevel[] = ['INFO', 'WARN', 'ERROR', 'DEBUG', 'FATAL']
+    const countByLevel = new Map<string, number>()
+    for (const item of logsByLevel) {
+      countByLevel.set(item.level, item._count._all)
+    }
+    const distribution = ALL_LEVELS.map((level) => ({
+      level,
+      count: countByLevel.get(level) ?? 0,
     }))
 
     const trends = await prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`

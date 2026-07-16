@@ -25,4 +25,5 @@ model Log {
 
   @@index([timestamp])
   @@index([level])
+  @@index([service])
 }

@@ -9,6 +9,7 @@ type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG' | 'FATAL';
 const LOG_LEVELS: LogLevel[] = ['INFO', 'WARN', 'ERROR', 'DEBUG', 'FATAL'];
 
 const EXPORT_ALL_CAP = 10000;
+const EXPORT_PAGE_SIZE = 100;
 
 function highlightMessage(message: string, term: string) {
   if (!term) return message;
@@ -84,7 +85,7 @@ export function Logs() {
     (endDate ? 1 : 0);
 
   const fetchAllFiltered = async (): Promise<{ rows: Log[]; truncated: boolean }> => {
-    const perPage = 1000;
+    const perPage = EXPORT_PAGE_SIZE;
     const rows: Log[] = [];
     let currentPage = 1;
     let pages = 1;

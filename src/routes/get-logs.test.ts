@@ -86,4 +86,80 @@ describe('get-logs route', () => {
 
     expect(res.statusCode).toBe(400)
   })
+
+  it('parses a single levels value as an in-filter', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/logs?levels=INFO',
+    })
+
+    expect(res.statusCode).toBe(200)
+    expect(mockPrisma.log.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ level: { in: ['INFO'] } }),
+      })
+    )
+  })
+
+  it('parses a comma-separated levels value', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/logs?levels=ERROR,WARN',
+    })
+
+    expect(res.statusCode).toBe(200)
+    expect(mockPrisma.log.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ level: { in: ['ERROR', 'WARN'] } }),
+      })
+    )
+  })
+
+  it('parses repeated levels values', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/logs?levels=ERROR&levels=WARN',
+    })
+
+    expect(res.statusCode).toBe(200)
+    expect(mockPrisma.log.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ level: { in: ['ERROR', 'WARN'] } }),
+      })
+    )
+  })
+
+  it('has levels take precedence over level', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/logs?level=INFO&levels=ERROR,WARN',
+    })
+
+    expect(res.statusCode).toBe(200)
+    expect(mockPrisma.log.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ level: { in: ['ERROR', 'WARN'] } }),
+      })
+    )
+  })
+
+  it('builds service and date-range filters', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/logs?service=payment&startDate=2024-01-01T00:00:00.000Z&endDate=2024-01-31T00:00:00.000Z',
+    })
+
+    expect(res.statusCode).toBe(200)
+    expect(mockPrisma.log.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          service: { contains: 'payment', mode: 'insensitive' },
+          timestamp: {
+            gte: new Date('2024-01-01T00:00:00.000Z'),
+            lte: new Date('2024-01-31T00:00:00.000Z'),
+          },
+        }),
+      })
+    )
+  })
 })

@@ -1,7 +1,10 @@
 import { PrismaClient } from '@prisma/client'
 import { LogLevel } from '@prisma/client'
+import type { Prisma } from '@prisma/client'
 
 const prisma = new PrismaClient()
+
+export const BATCH_SIZE = 1000
 
 const SERVICES = ['auth', 'api-gateway', 'payment', 'scheduler', 'web', 'worker', 'database']
 const LEVELS: LogLevel[] = ['INFO', 'WARN', 'ERROR', 'DEBUG', 'FATAL']
@@ -82,6 +85,20 @@ export function generateLogs(count: number, daysBack = 30): Array<{
   return logs
 }
 
+export async function insertLogsInBatches(
+  client: PrismaClient,
+  logs: Array<Prisma.LogCreateManyInput>,
+  batchSize = BATCH_SIZE
+): Promise<number> {
+  let imported = 0
+  for (let i = 0; i < logs.length; i += batchSize) {
+    const slice = logs.slice(i, i + batchSize)
+    await client.log.createMany({ data: slice })
+    imported += slice.length
+  }
+  return imported
+}
+
 async function main() {
   const count = Number(process.env.SEED_COUNT ?? 5000)
   const daysBack = Number(process.env.SEED_DAYS ?? 30)
@@ -89,14 +106,10 @@ async function main() {
   console.log(`Generating ${count} mock logs over ${daysBack} days...`)
   const logs = generateLogs(count, daysBack)
 
-  const BATCH = 1000
-  for (let i = 0; i < logs.length; i += BATCH) {
-    const slice = logs.slice(i, i + BATCH)
-    await prisma.log.createMany({ data: slice })
-  }
+  const imported = await insertLogsInBatches(prisma, logs)
 
   const total = await prisma.log.count()
-  console.log(`✓ Inserted ${logs.length} logs. Total in DB: ${total}`)
+  console.log(`✓ Inserted ${imported} logs. Total in DB: ${total}`)
 }
 
 if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
