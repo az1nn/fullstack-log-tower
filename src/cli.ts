@@ -1,6 +1,6 @@
-import { createLogTower, startLogTower, LogTowerOptions } from './index'
-import { tailFiles } from './lib/tail'
-import { parseLogLine } from './lib/parse'
+import { createLogTower, startLogTower, LogTowerOptions } from './index.js'
+import { tailFiles } from './lib/tail.js'
+import { parseLogLine } from './lib/parse.js'
 
 interface CliArgs {
   tail: string[]

@@ -1,8 +1,8 @@
 import { FastifyInstance } from 'fastify'
 import { beforeAll, afterAll, describe, it, expect } from 'vitest'
-import { uploadRoutes } from '../routes/upload'
-import { getLogsRoute } from '../routes/get-logs'
-import { prisma } from '../lib/prisma'
+import { uploadRoutes } from '../routes/upload.js'
+import { getLogsRoute } from '../routes/get-logs.js'
+import { prisma } from '../lib/prisma.js'
 
 let app: FastifyInstance
 let dbAvailable = false

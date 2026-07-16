@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { PrismaClient, LogLevel } from '@prisma/client'
-import { mapLogLevel } from '../lib/parse'
+import { mapLogLevel } from '../lib/parse.js'
 
 const BATCH_SIZE = 1000
 

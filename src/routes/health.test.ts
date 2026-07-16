@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import fastify from 'fastify'
-import { healthRoute } from './health'
+import { healthRoute } from './health.js'
 
 const mockPrisma = vi.hoisted(() => ({
   $queryRaw: vi.fn(),

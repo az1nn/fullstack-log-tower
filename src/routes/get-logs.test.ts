@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import fastify from 'fastify'
 import { ZodError } from 'zod'
-import { getLogsRoute } from './get-logs'
-import { setupPrismaMock } from '../test/prisma-mock'
+import { getLogsRoute } from './get-logs.js'
+import { setupPrismaMock } from '../test/prisma-mock.js'
 
 const mockPrisma = vi.hoisted(() => ({
   log: {

@@ -1,9 +1,9 @@
 import { FastifyInstance } from 'fastify'
 import { beforeAll, afterAll, describe, it, expect } from 'vitest'
-import { seedRoutes } from '../routes/seed'
-import { getLogsRoute } from '../routes/get-logs'
-import { prisma } from '../lib/prisma'
-import { generateLogs } from '../scripts/seed'
+import { seedRoutes } from '../routes/seed.js'
+import { getLogsRoute } from '../routes/get-logs.js'
+import { prisma } from '../lib/prisma.js'
+import { generateLogs } from '../scripts/seed.js'
 
 let app: FastifyInstance
 let dbAvailable = false

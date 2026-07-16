@@ -1,5 +1,5 @@
 import { writeFileSync } from 'fs'
-import { generateLogs } from './seed'
+import { generateLogs } from './seed.js'
 
 const count = Number(process.env.GEN_COUNT ?? 2000)
 const daysBack = Number(process.env.GEN_DAYS ?? 30)

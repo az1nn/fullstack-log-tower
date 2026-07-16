@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify'
 import readline from 'readline'
 import { Readable } from 'node:stream'
 import { PrismaClient } from '@prisma/client'
-import { parseLogLine } from '../lib/parse'
+import { parseLogLine } from '../lib/parse.js'
 
 const BATCH_SIZE = 1000
 

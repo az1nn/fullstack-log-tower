@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createLogTower } from './index'
+import { createLogTower } from './index.js'
 
 describe('createLogTower', () => {
   let mockPrisma: any

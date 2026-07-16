@@ -1,4 +1,4 @@
-import { createLogTower, startLogTower } from './index'
+import { createLogTower, startLogTower } from './index.js'
 
 const app = createLogTower()
 

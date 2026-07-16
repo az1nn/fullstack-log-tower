@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import fastify from 'fastify'
-import { pushRoutes } from './push'
+import { pushRoutes } from './push.js'
 
 const mockPrisma = vi.hoisted(() => ({
   log: {

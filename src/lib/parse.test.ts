@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseLogLine, mapLogLevel } from './parse'
+import { parseLogLine, mapLogLevel } from './parse.js'
 
 describe('parseLogLine', () => {
   it('parses a valid line', () => {

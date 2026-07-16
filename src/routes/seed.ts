@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { PrismaClient } from '@prisma/client'
-import { generateLogs, insertLogsInBatches } from '../scripts/seed'
+import { generateLogs, insertLogsInBatches } from '../scripts/seed.js'
 
 const seedQuerySchema = z.object({
   count: z.coerce.number().min(1).max(50000).default(1000),
