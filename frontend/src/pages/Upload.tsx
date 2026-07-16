@@ -21,17 +21,25 @@ export function Upload() {
   const [genMessage, setGenMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  const handleGenerate = () => {
+  const handleGenerate = (importLogs: boolean) => {
     const text = generateMockLogs({ count: genCount, days: genDays, service: genService || undefined });
-    const blob = new Blob([text], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'mock-logs.log';
-    a.click();
-    URL.revokeObjectURL(url);
+    const file = new File([text], 'mock-logs.log', { type: 'text/plain' });
+
+    if (!importLogs) {
+      const url = URL.createObjectURL(file);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'mock-logs.log';
+      a.click();
+      URL.revokeObjectURL(url);
+      setShowGenerator(false);
+      setGenMessage('Downloaded mock-logs.log — import it above');
+      return;
+    }
+
+    void uploadFile(file);
     setShowGenerator(false);
-    setGenMessage('Downloaded mock-logs.log — import it above');
+    setGenMessage('Generating & importing mock logs…');
   };
 
   const validateFile = (selected: File): string => {
@@ -77,18 +85,20 @@ export function Upload() {
   const handleUpload = async (e: FormEvent) => {
     e.preventDefault();
     if (!file) return;
-
     const error = validateFile(file);
     if (error) {
       setValidationError(error);
       return;
     }
+    await uploadFile(file);
+  };
 
+  const uploadFile = async (selected: File) => {
     setIsUploading(true);
     setProgress(0);
     setStatus('idle');
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', selected);
 
     try {
       const response = await api.post('/logs/upload', formData, {
@@ -100,11 +110,14 @@ export function Upload() {
         },
       });
       setStatus('success');
+      const imported = response.data.imported ?? 0;
       const dup = response.data.duplicates ?? 0;
       setSuccessMessage(
-        dup > 0
-          ? `${response.data.imported ?? 0} log(s) importado(s); ${dup} duplicado(s) ignorado(s).`
-          : `${response.data.imported ?? 0} logs importados com sucesso!`,
+        imported === 0 && dup > 0
+          ? 'Arquivo já importado anteriormente (logs duplicados ignorados).'
+          : dup > 0
+            ? `${imported} log(s) importado(s); ${dup} duplicado(s) ignorado(s).`
+            : `${imported} logs importados com sucesso!`,
       );
       setFile(null);
     } catch (error: any) {
@@ -259,10 +272,18 @@ export function Upload() {
 
               <button
                 type="button"
-                onClick={handleGenerate}
+                onClick={() => handleGenerate(true)}
                 className="bg-zinc-900 text-white py-2.5 rounded-lg font-medium hover:bg-zinc-800 transition"
               >
-                Generate &amp; download
+                Generate &amp; import
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleGenerate(false)}
+                className="bg-zinc-100 hover:bg-zinc-200 text-zinc-700 py-2.5 rounded-lg font-medium transition"
+              >
+                Download only
               </button>
             </div>
           </div>

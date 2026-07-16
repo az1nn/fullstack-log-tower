@@ -49,12 +49,20 @@ The system SHALL send a selected `.txt`/`.log` file via multipart/form-data to `
 #### Scenario: Generate mock logs (no backend call)
 - **WHEN** the user clicks "Generate mock logs" on the Upload screen
 - **THEN** a modal opens with controls for count (1–100), days back (1–30), and an optional service name
-- **AND** the generator requires no backend request (pure client-side `generateMockLogs`)
+- **AND** the generator builds lines client-side via `generateMockLogs` (no backend request to generate)
+
+#### Scenario: Generate and import mock logs
+- **WHEN** the user sets options and clicks "Generate & import"
+- **THEN** the system builds `count` lines in `[timestamp] [LEVEL] message (service=name)` format and POSTs them directly to `/api/logs/upload`
+- **AND** the success banner shows the imported count, or a duplicate message when the file was already imported
 
 #### Scenario: Generate and download mock logs
-- **WHEN** the user sets options and clicks "Generate & download"
-- **THEN** the system builds `count` lines in `[timestamp] [LEVEL] message (service=name)` format, downloads them as `mock-logs.log` via a Blob object URL, and shows a confirmation message
-- **AND** the generated file is not auto-uploaded; the user imports it manually through the dropzone
+- **WHEN** the user sets options and clicks "Download only"
+- **THEN** the system downloads the generated lines as `mock-logs.log` via a Blob object URL; the user may import it manually through the dropzone
+
+#### Scenario: Duplicate import message
+- **WHEN** an upload (generated or dropped) is fully duplicate (imported 0, duplicates > 0)
+- **THEN** the success banner shows "Arquivo já importado anteriormente (logs duplicados ignorados)."
 
 #### Scenario: Mock log format validity
 - **WHEN** the generated `mock-logs.log` is later uploaded via the dropzone
