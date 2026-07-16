@@ -38,3 +38,15 @@ The system SHALL be deployable to Render via `render.yaml` using a Docker image 
 - **WHEN** the backend runs in production
 - **THEN** `CORS_ORIGINS` is set to the deployed frontend origin(s), comma-separated, and CORS is restricted to that allowlist
 
+### Requirement: Deploy frontend on Vercel
+The system SHALL deploy the React frontend to Vercel, pointing its API client at the deployed backend URL via the `VITE_API_URL` build-time environment variable.
+
+#### Scenario: Vercel build
+- **WHEN** Vercel builds the `frontend` directory
+- **THEN** `VITE_API_URL` (e.g. `https://fullstack-log-tower-api.onrender.com/api`) is injected at build time
+- **AND** the axios client uses that base URL; when `VITE_API_URL` is absent it falls back to `http://localhost:3333/api` for local development
+
+#### Scenario: Frontend talks to backend
+- **WHEN** the deployed frontend makes API calls
+- **THEN** requests go to `VITE_API_URL` and the backend's `CORS_ORIGINS` includes the Vercel origin
+
