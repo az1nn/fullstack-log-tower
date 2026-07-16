@@ -27,7 +27,7 @@ The system SHALL expose `DATABASE_URL` so Prisma and the backend connect to the 
 - **THEN** `DATABASE_URL` points to `postgresql://admin:adminpassword@localhost:5432/logsdb?schema=public`
 
 ### Requirement: Deploy backend on Render
-The system SHALL be deployable to Render via `render.yaml` using a Docker image built from `Dockerfile`, with a managed PostgreSQL add-on and automatic migrations.
+The system SHALL be deployable to Render via `render.yaml` using a Docker image built from `Dockerfile`, with a managed PostgreSQL add-on and automatic migrations. The same build also produces the installable `log-tower` package (CLI + `dist`), usable as a local dev dependency by other apps (e.g. OpenBand).
 
 #### Scenario: Render deploy
 - **WHEN** a Render deploy is triggered from `render.yaml`
@@ -49,6 +49,9 @@ The system SHALL support OpenTelemetry via optional environment variables:
 - Backend: `OTEL_EXPORTER_OTLP_ENDPOINT` (OTLP/HTTP trace backend; unset → console exporter).
 - Frontend: `VITE_OTEL_EXPORTER_OTLP_ENDPOINT` (build-time; unset → no-op).
 
+The package is additionally configurable via CLI flags at runtime:
+- `--tail <files...>` (tail log files), `--port <3333>`, `--db <url>` (override `DATABASE_URL`), `--ui` (serve built frontend, default when `frontend/dist` exists). No new env vars beyond what the backend already reads.
+
 #### Scenario: No collector configured
 - **WHEN** neither OTLP endpoint is set
 - **THEN** the app runs with console/stdout telemetry and no external dependency
@@ -56,6 +59,11 @@ The system SHALL support OpenTelemetry via optional environment variables:
 #### Scenario: Collector configured
 - **WHEN** an OTLP endpoint is provided
 - **THEN** traces are sent to that backend (e.g. a free Grafana Cloud instance)
+
+#### Scenario: Host app setup
+- **WHEN** a host app (OpenBand) installs `log-tower` as a dev dependency
+- **THEN** it adds the `Log` model + `LogLevel` enum + indexes to its own Prisma schema, sets `DATABASE_URL`, runs `prisma generate` + `migrate deploy`, and runs the CLI (e.g. `npm run logs -- --tail ./openband.log --port 3333`) to observe logs
+- **AND** the app can stream logs via `POST /api/logs/push` (text or JSON) or by writing to the tailed file; ingested logs appear in the served UI at `http://localhost:<port>/`
 
 ### Requirement: Deploy frontend on Vercel
 The system SHALL deploy the React frontend to Vercel, pointing its API client at the deployed backend URL via the `VITE_API_URL` build-time environment variable.

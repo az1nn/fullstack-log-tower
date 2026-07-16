@@ -88,6 +88,7 @@ Do NOT skip straight to code. Wait for user approval of the spec before implemen
 ### API Contracts (current)
 
 - `POST /api/logs/upload` — multipart `file` field; 201 `{ message, imported, skipped }`; 400 `{ error }`. (Idempotency via `upload_id` is currently disabled — re-uploads insert again.)
+- `POST /api/logs/push` — ingest pushed logs without multipart. `Content-Type: text/plain`: body is newline-delimited log lines parsed with the shared parser (201 `{ imported, skipped }`). `Content-Type: application/json`: body is an array of `{ timestamp, level, message, service? }` validated with Zod; unknown levels normalize to INFO (201 `{ imported, skipped }`). Empty/invalid body → 400.
 - `GET /api/logs` — query `page`, `perPage` (1–100), `level`, `levels[]`, `service`, `search`, `startDate`, `endDate` (ISO). Response `{ data, meta }`.
 - `GET /api/metrics` — query `startDate?`, `endDate?`. Response `{ summary, distribution, trends, trendsByLevel }`.
 - `POST /api/seed` — query `count`, `days`. Response `{ message, imported, total }`.

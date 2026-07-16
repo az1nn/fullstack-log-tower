@@ -95,3 +95,58 @@ The system SHALL initialize OpenTelemetry at startup, auto-instrumenting HTTP an
 
 ### Requirement: Structured request logging
 The system SHALL log each response via an `onResponse` hook with method, route, status code, duration (ms), and request/trace id at info level, and set the `X-Request-Id` response header.
+
+### Requirement: Shared log-line parser
+The system SHALL expose a shared `parseLogLine(line)` parser (and `mapLogLevel`) from `src/lib/parse.ts` used by both the upload and tail/push ingest paths, returning `{ timestamp, level, message, service? } | null`.
+
+#### Scenario: Shared parser
+- **WHEN** a line matches `\[(timestamp)\] \[(level)\] (message)( \(service=(name)\))?`
+- **THEN** `parseLogLine` returns the parsed fields; an invalid line or timestamp returns `null`
+- **AND** `mapLogLevel` upper-cases valid levels and normalizes unknown levels to `INFO`
+
+### Requirement: HTTP push ingest
+The system SHALL accept log lines pushed over HTTP so a running app can stream its logs without writing a file via `POST /api/logs/push`.
+
+#### Scenario: Push plain text lines
+- **WHEN** a client POSTs newline-delimited log lines (`text/plain`) to `POST /api/logs/push`
+- **THEN** they are parsed and inserted (valid lines counted in `imported`, unparseable lines in `skipped`), returning 201 `{ imported, skipped }`
+
+#### Scenario: Push JSON array
+- **WHEN** a client POSTs a JSON array of `{ timestamp, level, message, service? }` (`application/json`) to `POST /api/logs/push`
+- **THEN** they are validated (Zod) and inserted, with unknown levels normalized to `INFO`, returning 201 `{ imported, skipped }`
+
+#### Scenario: Invalid body
+- **WHEN** the body is empty or fails validation
+- **THEN** the service returns 400 with an error message
+
+### Requirement: File-tail ingest
+The system SHALL tail one or more log files and ingest new lines live, reusing the shared parser, with no new runtime dependencies (Node `fs`/`readline` only).
+
+#### Scenario: Tail a running app's log file
+- **WHEN** the CLI is started with `--tail <file>`
+- **THEN** new lines appended after start are parsed and inserted as `Log` rows
+- **AND** truncation/rotation (file size < stored offset) resets the byte offset and re-reads from 0
+- **AND** only bytes written after start are ingested (seeks to EOF at boot)
+
+### Requirement: Installable log-observer package
+The system SHALL be publishable and installable as a local dev dependency (`log-tower`) so a host app can run it to observe its logs.
+
+#### Scenario: Packaging metadata
+- **WHEN** the package is built (`tsc -p tsconfig.json` with declarations)
+- **THEN** it exposes `name: "log-tower"`, `bin.log-tower` → `dist/cli.js`, `main`/`types`/`exports` → `dist`, and ships only `dist` via `files` (not `private: true`)
+
+#### Scenario: Factory + CLI
+- **WHEN** `createLogTower(opts)` is called
+- **THEN** it returns a Fastify instance with all routes registered (upload, getLogs, metrics, seed, health, push), a `prisma` decorator, CORS, multipart, request logging, and static UI serving when `frontend/dist` exists (no `@fastify/static` dependency)
+- **AND** `startLogTower(app, port?)` runs `prisma migrate deploy` (non-fatal) and listens on `0.0.0.0:<port>` (default 3333)
+
+#### Scenario: CLI run
+- **WHEN** the CLI is invoked as `npx log-tower --tail <file> --port 3333 --db <url>`
+- **THEN** it builds the app, tails the given file(s), serves the UI, and prints `LogTower UI: http://localhost:<port>/`
+
+### Requirement: Live observation in existing UI
+The system SHALL show ingested (tail/push/upload) logs in the existing Dashboard and Logs views.
+
+#### Scenario: UI reflects ingested logs
+- **WHEN** logs arrive via tail or push
+- **THEN** they appear in the Logs table and Dashboard metrics after the page's normal poll/refresh (same `Log` table + `GET /api/logs`)
