@@ -11,6 +11,8 @@
     "prisma:migrate": "prisma migrate dev",
     "seed": "tsx src/scripts/seed.ts",
     "gen:mock": "tsx src/scripts/generate-mock-file.ts",
+    "test": "vitest run",
+    "test:integration": "vitest run src/**/integration.test.ts",
     "test": "vitest run"
   },
   "dependencies": {

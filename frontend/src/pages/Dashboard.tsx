@@ -1,15 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { Activity } from 'lucide-react';
+import { Activity, RefreshCw } from 'lucide-react';
 import { api } from '../lib/axios';
+
+const LEVELS = ['INFO', 'WARN', 'ERROR', 'DEBUG', 'FATAL'] as const;
+type Level = typeof LEVELS[number];
+
+type TrendsByLevel = {
+  date: string;
+  INFO: number;
+  WARN: number;
+  ERROR: number;
+  DEBUG: number;
+  FATAL: number;
+};
 
 type MetricsData = {
   summary: { total: number };
   distribution: { level: string; count: number }[];
   trends: { date: string; count: number }[];
+  trendsByLevel: TrendsByLevel[];
 };
 
-const COLORS = {
+const COLORS: Record<Level, string> = {
   INFO: '#3b82f6',  // blue
   WARN: '#eab308',  // yellow
   ERROR: '#ef4444', // red
@@ -17,25 +30,131 @@ const COLORS = {
   FATAL: '#a855f7', // purple
 };
 
+type Preset = '24h' | '7d' | '30d' | 'custom';
+
+function presetRange(preset: Preset): { startDate: string; endDate: string } {
+  const end = new Date();
+  const start = new Date();
+  if (preset === '24h') start.setHours(start.getHours() - 24);
+  if (preset === '7d') start.setDate(start.getDate() - 7);
+  if (preset === '30d') start.setDate(start.getDate() - 30);
+  if (preset === 'custom') return { startDate: '', endDate: '' };
+  return {
+    startDate: start.toISOString(),
+    endDate: end.toISOString(),
+  };
+}
+
 export function Dashboard() {
   const [data, setData] = useState<MetricsData | null>(null);
+  const [preset, setPreset] = useState<Preset>('30d');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const buildParams = useCallback(() => {
+    if (preset === 'custom') {
+      const params: Record<string, string> = {};
+      if (startDate) params.startDate = new Date(startDate).toISOString();
+      if (endDate) params.endDate = new Date(endDate).toISOString();
+      return params;
+    }
+    return presetRange(preset);
+  }, [preset, startDate, endDate]);
+
+  const fetchMetrics = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/metrics', { params: buildParams() });
+      setData(response.data);
+    } catch (error) {
+      console.error('Erro ao buscar métricas', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [buildParams]);
 
   useEffect(() => {
-    const fetchMetrics = async () => {
-      try {
-        const response = await api.get('/metrics');
-        setData(response.data);
-      } catch (error) {
-        console.error('Erro ao buscar métricas', error);
+    fetchMetrics();
+  }, [fetchMetrics]);
+
+  const intervalRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (autoRefresh) {
+      intervalRef.current = window.setInterval(() => {
+        fetchMetrics();
+      }, 30000);
+    }
+    return () => {
+      if (intervalRef.current !== null) {
+        window.clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
-    fetchMetrics();
-  }, []);
+  }, [autoRefresh, fetchMetrics]);
 
   if (!data) return <div className="text-zinc-500">Carregando dashboard...</div>;
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Controles de data e refresh */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-zinc-200 flex flex-wrap items-center gap-4">
+        <div className="flex gap-2">
+          {(['24h', '7d', '30d', 'custom'] as Preset[]).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPreset(p)}
+              className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                preset === p
+                  ? 'bg-zinc-800 text-white border-zinc-800'
+                  : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
+              }`}
+            >
+              {p === 'custom' ? 'Personalizado' : p}
+            </button>
+          ))}
+        </div>
+
+        {preset === 'custom' && (
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="px-3 py-1.5 text-sm rounded-lg border border-zinc-200 text-zinc-700"
+            />
+            <span className="text-zinc-400">até</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="px-3 py-1.5 text-sm rounded-lg border border-zinc-200 text-zinc-700"
+            />
+          </div>
+        )}
+
+        <div className="flex items-center gap-4 ml-auto">
+          <label className="flex items-center gap-2 text-sm text-zinc-600 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={autoRefresh}
+              onChange={(e) => setAutoRefresh(e.target.checked)}
+              className="w-4 h-4 accent-zinc-800"
+            />
+            Auto-refresh (30s)
+          </label>
+          <button
+            onClick={fetchMetrics}
+            disabled={loading}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
+      </div>
+
       {/* Card Totalizador */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-zinc-200 flex items-center justify-between w-64">
         <div>
@@ -53,14 +172,26 @@ export function Dashboard() {
           <h3 className="text-lg font-bold text-zinc-800 mb-6">Volume Diário de Logs</h3>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data.trends}>
+              <LineChart data={data.trendsByLevel}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e4e4e7" />
                 <XAxis dataKey="date" stroke="#a1a1aa" fontSize={12} tickLine={false} />
                 <YAxis stroke="#a1a1aa" fontSize={12} tickLine={false} axisLine={false} />
                 <Tooltip
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                 />
-                <Line type="monotone" dataKey="count" stroke="#18181b" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                {LEVELS.map((level) => (
+                  <Line
+                    key={level}
+                    type="monotone"
+                    dataKey={level}
+                    name={level}
+                    stroke={COLORS[level]}
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 5 }}
+                  />
+                ))}
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -81,7 +212,7 @@ export function Dashboard() {
                   nameKey="level"
                 >
                   {data.distribution.map((entry) => (
-                    <Cell key={entry.level} fill={COLORS[entry.level as keyof typeof COLORS] || COLORS.INFO} />
+                    <Cell key={entry.level} fill={COLORS[entry.level as Level] || COLORS.INFO} />
                   ))}
                 </Pie>
                 <Tooltip

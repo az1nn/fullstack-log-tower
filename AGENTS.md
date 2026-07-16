@@ -42,6 +42,8 @@ openspec/
   changes/                   # Active change proposals (proposal/design/tasks + delta specs)
   changes/archive/           # Archived completed changes
 docker-compose.yml           # PostgreSQL 15
+frontend/vercel.json        # SPA rewrite so client routes don't 404 on Vercel
+.github/workflows/ci.yml    # CI: backend (mocked + real Postgres) + frontend
 ```
 
 ## Pre-flight
@@ -100,11 +102,29 @@ Run in this order; all must pass:
 cd /home/az1nn/fullstack-log-tower && npx tsc --noEmit
 # 3. Frontend typecheck
 cd /home/az1nn/fullstack-log-tower/frontend && npx tsc --noEmit
+# 4. Backend unit tests (mocked Prisma — no DB needed)
+cd /home/az1nn/fullstack-log-tower && npx vitest run
+# 5. Frontend tests
+cd /home/az1nn/fullstack-log-tower/frontend && npx vitest run
 ```
 
 If a check fails: read the error, fix the root cause, re-run from the top. Only proceed when all pass.
 
-(No test framework is configured yet; add one when the project requires it, and extend this section then.)
+### Integration tests (real Postgres)
+
+Backend `src/routes/integration.test.ts` exercises the real API against Postgres. It
+needs a running DB with `DATABASE_URL` pointing at it:
+
+```
+docker compose -f docker-compose.test.yml up -d db-test   # Postgres on :5433, db logsdb_test
+npx prisma migrate deploy
+DATABASE_URL="postgresql://admin:adminpassword@localhost:5433/logsdb_test?schema=public" \
+  npx vitest run src/**/integration.test.ts
+```
+
+In CI (`.github/workflows/ci.yml`) this runs automatically on every push/PR.
+Default `npm test` (mocked) always passes without Docker; integration runs only
+where Postgres is available.
 
 ## Phase 4: Repeat / Commit
 
