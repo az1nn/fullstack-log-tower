@@ -14,9 +14,13 @@
 - `sdk.start()` once at boot (in `src/server.ts` before `app.listen`).
 
 ### Fastify OTel plugin
-- `app.register(require('@fastify/otel'), { ... })` — official plugin sets up
-  request scopes, extracts/injects trace context, and exposes the active span.
-- The plugin's request context is available in handlers for logging.
+- `@fastify/otel` v0.20+ is an `Instrumentation` (not a plugin-class). It is
+  added to the NodeSDK `instrumentations` array with
+  `{ registerOnInitialization: true }` in `src/lib/otel.ts`, so it auto-wraps
+  Fastify route handlers and lifecycle hooks. No separate `app.register()` of
+  the instrumentation is needed.
+- The instrumentation exposes the active span via the OTel request context for
+  structured logging.
 
 ### Structured request logging (`src/lib/request-logger.ts`)
 - `app.addHook('onResponse', async (req, reply) => { ... })`:

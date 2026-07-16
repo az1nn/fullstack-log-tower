@@ -11,6 +11,12 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/context-zone": "^2.9.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.220.0",
+    "@opentelemetry/resources": "^2.9.0",
+    "@opentelemetry/sdk-trace-web": "^2.9.0",
+    "@opentelemetry/semantic-conventions": "^1.43.0",
     "axios": "^1.7.2",
     "date-fns": "^3.6.0",
     "lucide-react": "^0.408.0",

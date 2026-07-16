@@ -7,6 +7,9 @@ import { uploadRoutes } from './routes/upload'
 import { getLogsRoute } from './routes/get-logs'
 import { metricsRoute } from './routes/metrics'
 import { seedRoutes } from './routes/seed'
+import { healthRoute } from './routes/health'
+import { startTracing } from './lib/otel'
+import { registerRequestLogger } from './lib/request-logger'
 
 const app = fastify({ logger: true })
 
@@ -22,6 +25,9 @@ app.register(uploadRoutes)
 app.register(getLogsRoute)
 app.register(metricsRoute)
 app.register(seedRoutes)
+app.register(healthRoute)
+
+registerRequestLogger(app)
 
 app.setErrorHandler((error, request, reply) => {
   if (error instanceof ZodError) {
@@ -31,13 +37,19 @@ app.setErrorHandler((error, request, reply) => {
     })
   }
 
-  app.log.error(error)
+  app.log.error({ err: error, reqId: request.id }, error.message)
   return reply.status(500).send({ message: 'Erro interno do servidor.' })
 })
 
 const PORT = Number(process.env.PORT) || 3333
 
 async function bootstrap() {
+  try {
+    await startTracing()
+  } catch (err) {
+    console.error('OpenTelemetry failed to start, continuing without tracing:', err)
+  }
+
   try {
     console.log('Running database migrations...')
     execSync('npx prisma migrate deploy', { stdio: 'inherit' })

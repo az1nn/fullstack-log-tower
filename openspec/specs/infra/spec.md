@@ -40,6 +40,23 @@ The system SHALL be deployable to Render via `render.yaml` using a Docker image 
 - **WHEN** the backend runs in production
 - **THEN** `CORS_ORIGINS` is set to the deployed frontend origin(s), comma-separated, and CORS is restricted to that allowlist
 
+#### Scenario: Health check path
+- **WHEN** Render performs its health check
+- **THEN** it targets `/api/health` (replacing `/api/metrics`) so liveness and database connectivity are both verified
+
+### Requirement: Observability configuration
+The system SHALL support OpenTelemetry via optional environment variables:
+- Backend: `OTEL_EXPORTER_OTLP_ENDPOINT` (OTLP/HTTP trace backend; unset → console exporter).
+- Frontend: `VITE_OTEL_EXPORTER_OTLP_ENDPOINT` (build-time; unset → no-op).
+
+#### Scenario: No collector configured
+- **WHEN** neither OTLP endpoint is set
+- **THEN** the app runs with console/stdout telemetry and no external dependency
+
+#### Scenario: Collector configured
+- **WHEN** an OTLP endpoint is provided
+- **THEN** traces are sent to that backend (e.g. a free Grafana Cloud instance)
+
 ### Requirement: Deploy frontend on Vercel
 The system SHALL deploy the React frontend to Vercel, pointing its API client at the deployed backend URL via the `VITE_API_URL` build-time environment variable.
 
