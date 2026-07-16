@@ -21,6 +21,12 @@ The system SHALL accept multipart file uploads and ingest parsed log lines into 
 - **WHEN** an uploaded line carries a level not in the `LogLevel` enum (e.g. `TRACE`)
 - **THEN** that level is normalized to `INFO` and the line is still imported (counted in `imported`, not `skipped`)
 
+#### Scenario: Idempotency (append-only, not idempotent)
+- **WHEN** a client re-POSTs the same file or the request is retried after a network error
+- **THEN** the service appends the parsed lines again, creating duplicate rows; the response `imported` count reflects only the rows inserted in that call
+- **AND** the service does NOT dedupe by content, because `Log.id` is a random UUID with no unique constraint on `(timestamp, level, message, service)`
+- **NOTE:** This is an accepted trade-off for a log-ingestion endpoint (logs are naturally append-only). Clients SHOULD avoid double-submitting the same file. Making upload idempotent (e.g. content hash / idempotency key) is out of scope and intentionally not implemented, since real log streams are not deduplicated at ingest.
+
 ### Requirement: List and filter logs
 The system SHALL return paginated logs with optional level, text search, and date-range filters.
 
