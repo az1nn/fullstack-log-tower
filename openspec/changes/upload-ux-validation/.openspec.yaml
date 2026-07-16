@@ -1,0 +1,2 @@
+name: upload-ux-validation
+description: Improve the upload screen with real progress feedback, drag-and-drop, client-side format validation, and clearer error/duplicate handling.

@@ -1,0 +1,2 @@
+name: log-detail-export
+description: Add a log detail view (expandable row / drawer) with message highlighting, plus CSV/JSON export of current filtered results.

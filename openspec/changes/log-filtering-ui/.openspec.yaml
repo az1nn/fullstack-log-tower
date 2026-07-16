@@ -1,0 +1,2 @@
+name: log-filtering-ui
+description: Add level/date/service/multi-level filters to the Logs explorer and extend the backend get-logs route to support them.
