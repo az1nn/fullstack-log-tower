@@ -18,6 +18,7 @@ export async function uploadRoutes(app: FastifyInstance) {
 
     const logsToInsert: any[] = []
     const BATCH_SIZE = 1000
+    let imported = 0
     const logPattern = /^\[(.*?)\]\s+\[(.*?)\]\s+(.*)$/
 
     for await (const line of rl) {
@@ -35,19 +36,24 @@ export async function uploadRoutes(app: FastifyInstance) {
 
       if (logsToInsert.length >= BATCH_SIZE) {
         await prisma.log.createMany({ data: logsToInsert })
+        imported += logsToInsert.length
         logsToInsert.length = 0
       }
     }
 
     if (logsToInsert.length > 0) {
       await prisma.log.createMany({ data: logsToInsert })
+      imported += logsToInsert.length
     }
 
-    return reply.status(201).send({ message: 'Arquivo processado e logs importados com sucesso!' })
+    return reply.status(201).send({
+      message: 'Arquivo processado e logs importados com sucesso!',
+      imported,
+    })
   })
 }
 
-function mapLogLevel(level: string): LogLevel {
+export function mapLogLevel(level: string): LogLevel {
   const upperLevel = level.toUpperCase()
   const validLevels = ['INFO', 'WARN', 'ERROR', 'DEBUG', 'FATAL']
 

@@ -10,7 +10,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "seed": "tsx src/scripts/seed.ts",
-    "gen:mock": "tsx src/scripts/generate-mock-file.ts"
+    "gen:mock": "tsx src/scripts/generate-mock-file.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",
@@ -23,6 +24,7 @@
     "@types/node": "^20.14.0",
     "prisma": "^5.22.0",
     "tsx": "^4.16.0",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "vitest": "^2.1.0"
   }
 }

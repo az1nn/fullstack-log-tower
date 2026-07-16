@@ -7,6 +7,8 @@ const getLogsQuerySchema = z.object({
   page: z.coerce.number().min(1).default(1),
   perPage: z.coerce.number().min(1).max(100).default(20),
   level: z.nativeEnum(LogLevel).optional(),
+  levels: z.array(z.nativeEnum(LogLevel)).optional(),
+  service: z.string().optional(),
   search: z.string().optional(),
   startDate: z.string().datetime().transform((val) => new Date(val)).optional(),
   endDate: z.string().datetime().transform((val) => new Date(val)).optional(),
@@ -14,12 +16,21 @@ const getLogsQuerySchema = z.object({
 
 export async function getLogsRoute(app: FastifyInstance) {
   app.get('/api/logs', async (request, reply) => {
-    const { page, perPage, level, search, startDate, endDate } = getLogsQuerySchema.parse(request.query)
+    const { page, perPage, level, levels, service, search, startDate, endDate } = getLogsQuerySchema.parse(request.query)
 
     const skip = (page - 1) * perPage
     const whereClause: any = {}
 
     if (level) whereClause.level = level
+
+    if (levels && levels.length > 0) whereClause.level = { in: levels }
+
+    if (service) {
+      whereClause.service = {
+        contains: service,
+        mode: 'insensitive',
+      }
+    }
 
     if (search) {
       whereClause.message = {

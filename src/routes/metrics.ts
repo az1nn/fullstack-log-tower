@@ -57,10 +57,37 @@ export async function metricsRoute(app: FastifyInstance) {
       count: Number(trend.count),
     }))
 
+    const trendsByLevelRaw = await prisma.$queryRaw<Array<{
+      date: Date
+      level: string
+      count: bigint
+    }>>`
+      SELECT
+        DATE("timestamp") as "date",
+        "level" as "level",
+        COUNT(*)::bigint as "count"
+      FROM "Log"
+      WHERE "timestamp" >= ${filterStartDate} AND "timestamp" <= ${filterEndDate}
+      GROUP BY DATE("timestamp"), "level"
+      ORDER BY "date" ASC
+    `
+
+    const dayLevelMap = new Map<string, { date: string; INFO: number; WARN: number; ERROR: number; DEBUG: number; FATAL: number }>()
+    for (const row of trendsByLevelRaw) {
+      const date = row.date.toISOString().split('T')[0]
+      const entry = dayLevelMap.get(date) || { date, INFO: 0, WARN: 0, ERROR: 0, DEBUG: 0, FATAL: 0 }
+      const level = row.level.toUpperCase() as keyof Omit<typeof entry, 'date'>
+      entry[level] = Number(row.count)
+      dayLevelMap.set(date, entry)
+    }
+
+    const trendsByLevel = Array.from(dayLevelMap.values()).sort((a, b) => a.date.localeCompare(b.date))
+
     return reply.status(200).send({
       summary: { total: totalLogs },
       distribution,
       trends: formattedTrends,
+      trendsByLevel,
     })
   })
 }
