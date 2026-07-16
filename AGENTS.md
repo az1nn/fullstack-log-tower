@@ -132,8 +132,9 @@ where Postgres is available.
 Helper scripts:
 - `scripts/install-docker.sh` — installs Docker Engine on Ubuntu/Debian.
 - `scripts/build-and-run.sh` — `docker compose up -d` (Postgres) + `docker build` + run backend on `:3333`.
-  Uses `DATABASE_URL=postgresql://admin:adminpassword@host.docker.internal:5432/logsdb?schema=public`
-  (Linux adds `--add-host=host.docker.internal:host-gateway`).
+  Reads `DATABASE_URL` from `.env` (falls back to `.env.example`) and rewrites
+  `localhost` → `host.docker.internal` so the container reaches the host Postgres
+  (Linux adds `--add-host=host.docker.internal:host-gateway`). No credentials hardcoded.
 
 The backend `Dockerfile` uses `node:20-slim` and installs `libssl1.1` because
 **Prisma 5.22's query engine needs `libssl.so.1.1`** (Debian 12 ships OpenSSL 3 only).
