@@ -39,7 +39,7 @@ jobs:
         run: npx vitest run
 
       - name: Integration tests (real Postgres)
-        run: npx vitest run src/routes/integration.test.ts
+        run: npx vitest run --config vitest.integration.config.ts
 
   frontend:
     runs-on: ubuntu-latest
