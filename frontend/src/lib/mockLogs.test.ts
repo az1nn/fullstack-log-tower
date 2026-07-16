@@ -36,4 +36,14 @@ describe('generateMockLogs', () => {
     expect(generateMockLogs({ count: 999, days: 1 }).split('\n').length).toBeLessThanOrEqual(100);
     expect(generateMockLogs({ count: 0, days: 1 }).split('\n').length).toBeGreaterThanOrEqual(1);
   });
+
+  it('produces unique content per call (never dedupes on re-import)', () => {
+    const a = generateMockLogs({ count: 15, days: 1 });
+    const b = generateMockLogs({ count: 15, days: 1 });
+    expect(a).not.toBe(b);
+    const PARSER2 = /^\[(.*?)\]\s+\[(.*?)\]\s+(.*?)(?:\s+\(service=(.*?)\))?\s*$/;
+    for (const line of a.split('\n')) {
+      expect(line.match(PARSER2)).not.toBeNull();
+    }
+  });
 });

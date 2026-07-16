@@ -22,6 +22,7 @@ export function generateMockLogs(opts: MockLogOptions): string {
   const days = Math.min(30, Math.max(1, Math.floor(opts.days)));
   const now = Date.now();
   const windowMs = days * 24 * 60 * 60 * 1000;
+  const nonce = Math.random().toString(36).slice(2, 10);
 
   const lines: string[] = [];
   for (let i = 0; i < count; i++) {
@@ -31,7 +32,7 @@ export function generateMockLogs(opts: MockLogOptions): string {
     const service = opts.service && opts.service.length > 0
       ? opts.service
       : ROTATING_SERVICES[i % ROTATING_SERVICES.length];
-    lines.push(`[${timestamp}] [${level}] ${message} (service=${service})`);
+    lines.push(`[${timestamp}] [${level}] ${message} #${nonce} (service=${service})`);
   }
 
   return lines.join('\n');

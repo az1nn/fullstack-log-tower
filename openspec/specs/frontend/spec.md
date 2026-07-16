@@ -68,6 +68,10 @@ The system SHALL send a selected `.txt`/`.log` file via multipart/form-data to `
 - **WHEN** the generated `mock-logs.log` is later uploaded via the dropzone
 - **THEN** every line is parsed by the existing upload parser (levels from `INFO, WARN, ERROR, DEBUG, FATAL`; optional `service=` suffix)
 
+#### Scenario: Generated logs are always fresh (never dedupe)
+- **WHEN** the user generates mock logs (and imports or re-uploads them)
+- **THEN** each generation embeds a unique per-call token so the file content (and its `upload_id` hash) differs from any prior generation, guaranteeing the rows are inserted rather than deduped
+
 ### Requirement: Frontend OpenTelemetry tracing
 The system SHALL initialize OpenTelemetry in the browser, exporting traces via OTLP/HTTP when `VITE_OTEL_EXPORTER_OTLP_ENDPOINT` is configured; when unset, tracing is a no-op so no external service is required.
 
