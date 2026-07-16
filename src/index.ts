@@ -4,6 +4,10 @@ import multipart from '@fastify/multipart'
 import { execSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 import { ZodError } from 'zod'
 import { PrismaClient } from '@prisma/client'
 import { getDefaultPrisma } from './lib/prisma.js'
@@ -63,7 +67,10 @@ export function createLogTower(opts: LogTowerOptions = {}): FastifyInstance {
     return reply.status(500).send({ message: 'Erro interno do servidor.' })
   })
 
-  const uiDir = path.resolve(process.cwd(), 'frontend/dist')
+  const bundledUiDir = path.join(__dirname, 'ui')
+  const uiDir = fs.existsSync(bundledUiDir)
+    ? bundledUiDir
+    : path.resolve(process.cwd(), 'frontend/dist')
   if (fs.existsSync(uiDir)) {
     app.get('*', async (request, reply) => {
       const urlPath = request.url === '/' ? '/index.html' : request.url.split('?')[0]
