@@ -5,6 +5,7 @@ import { ZodError } from 'zod'
 import { uploadRoutes } from './routes/upload'
 import { getLogsRoute } from './routes/get-logs'
 import { metricsRoute } from './routes/metrics'
+import { seedRoutes } from './routes/seed'
 
 const app = fastify({ logger: true })
 
@@ -17,6 +18,7 @@ app.register(multipart, {
 app.register(uploadRoutes)
 app.register(getLogsRoute)
 app.register(metricsRoute)
+app.register(seedRoutes)
 
 app.setErrorHandler((error, request, reply) => {
   if (error instanceof ZodError) {
