@@ -15,6 +15,7 @@ describe('health route', () => {
     vi.clearAllMocks()
     app = fastify()
     app.register(healthRoute)
+    app.decorate('prisma', mockPrisma)
   })
 
   it('returns 200 with db up when the database is reachable', async () => {

@@ -36,6 +36,7 @@ describe('get-logs route', () => {
       return reply.status(500).send({ message: 'Erro interno do servidor.' })
     })
     app.register(getLogsRoute)
+    app.decorate('prisma', mockPrisma)
   })
 
   it('returns 200 with data and meta', async () => {

@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { prisma } from '../lib/prisma'
+import { PrismaClient } from '@prisma/client'
 import { LogLevel } from '@prisma/client'
 
 const metricsQuerySchema = z.object({
@@ -10,6 +10,7 @@ const metricsQuerySchema = z.object({
 
 export async function metricsRoute(app: FastifyInstance) {
   app.get('/api/metrics', async (request, reply) => {
+    const prisma = app.prisma as PrismaClient
     const { startDate, endDate } = metricsQuerySchema.parse(request.query)
 
     const defaultStartDate = new Date()

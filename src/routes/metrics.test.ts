@@ -28,6 +28,7 @@ describe('metrics route', () => {
     mockPrisma.$queryRaw.mockResolvedValue([])
     app = fastify()
     app.register(metricsRoute)
+    app.decorate('prisma', mockPrisma)
   })
 
   it('returns 200 with summary, distribution, trends, trendsByLevel', async () => {

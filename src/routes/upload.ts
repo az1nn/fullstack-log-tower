@@ -1,11 +1,14 @@
 import { FastifyInstance } from 'fastify'
-import { prisma } from '../lib/prisma'
 import readline from 'readline'
 import { Readable } from 'node:stream'
-import { LogLevel } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
+import { parseLogLine } from '../lib/parse'
+
+const BATCH_SIZE = 1000
 
 export async function uploadRoutes(app: FastifyInstance) {
   app.post('/api/logs/upload', async (request, reply) => {
+    const prisma = app.prisma as PrismaClient
     const data = await request.file()
 
     if (!data) {
@@ -24,35 +27,27 @@ export async function uploadRoutes(app: FastifyInstance) {
     })
 
     const logsToInsert: any[] = []
-    const BATCH_SIZE = 1000
     let imported = 0
     let skipped = 0
-    const logPattern = /^\[(.*?)\]\s+\[(.*?)\]\s+(.*?)(?:\s+\(service=(.*?)\))?\s*$/
 
     for await (const line of rl) {
-      const match = line.match(logPattern)
+      const parsed = parseLogLine(line)
 
-      if (match) {
-        const [, dateString, levelStr, message, service] = match
-        const timestamp = new Date(dateString)
-        const level = mapLogLevel(levelStr)
-
-        if (!isNaN(timestamp.getTime())) {
-          logsToInsert.push({ timestamp, level, message, service })
-        }
+      if (parsed) {
+        logsToInsert.push(parsed)
       } else {
         skipped++
       }
 
       if (logsToInsert.length >= BATCH_SIZE) {
-        await insertBatch(logsToInsert)
+        await prisma.log.createMany({ data: logsToInsert })
         imported += logsToInsert.length
         logsToInsert.length = 0
       }
     }
 
     if (logsToInsert.length > 0) {
-      await insertBatch(logsToInsert)
+      await prisma.log.createMany({ data: logsToInsert })
       imported += logsToInsert.length
     }
 
@@ -62,18 +57,4 @@ export async function uploadRoutes(app: FastifyInstance) {
       skipped,
     })
   })
-}
-
-async function insertBatch(batch: any[]) {
-  await prisma.log.createMany({ data: batch })
-}
-
-export function mapLogLevel(level: string): LogLevel {
-  const upperLevel = level.toUpperCase()
-  const validLevels = ['INFO', 'WARN', 'ERROR', 'DEBUG', 'FATAL']
-
-  if (validLevels.includes(upperLevel)) {
-    return upperLevel as LogLevel
-  }
-  return 'INFO'
 }

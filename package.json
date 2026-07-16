@@ -1,11 +1,26 @@
 {
-  "name": "log-analyzer-backend",
-  "version": "1.0.0",
-  "private": true,
+  "name": "log-tower",
+  "version": "0.1.0",
+  "private": false,
   "type": "module",
+  "bin": {
+    "log-tower": "dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./cli": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "tsc -p tsconfig.json",
     "start": "tsx src/server.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",

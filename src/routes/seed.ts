@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { prisma } from '../lib/prisma'
+import { PrismaClient } from '@prisma/client'
 import { generateLogs, insertLogsInBatches } from '../scripts/seed'
 
 const seedQuerySchema = z.object({
@@ -10,6 +10,7 @@ const seedQuerySchema = z.object({
 
 export async function seedRoutes(app: FastifyInstance) {
   app.post('/api/seed', async (request, reply) => {
+    const prisma = app.prisma as PrismaClient
     const { count, days } = seedQuerySchema.parse(request.query)
 
     const logs = generateLogs(count, days)

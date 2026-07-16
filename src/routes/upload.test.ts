@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import fastify from 'fastify'
 import multipart from '@fastify/multipart'
 import { uploadRoutes } from './upload'
-import { mapLogLevel } from './upload'
+import { mapLogLevel } from '../lib/parse'
 import { setupPrismaMock } from '../test/prisma-mock'
 
 const mockPrisma = vi.hoisted(() => ({
@@ -44,6 +44,7 @@ describe('upload route', () => {
     app = fastify()
     app.register(multipart)
     app.register(uploadRoutes)
+    app.decorate('prisma', mockPrisma)
   })
 
   it('returns 400 when no file is provided', async () => {

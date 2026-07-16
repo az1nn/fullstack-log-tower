@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { prisma } from '../lib/prisma'
+import { PrismaClient } from '@prisma/client'
 import { LogLevel } from '@prisma/client'
 
 const getLogsQuerySchema = z.object({
@@ -23,6 +23,7 @@ const getLogsQuerySchema = z.object({
 
 export async function getLogsRoute(app: FastifyInstance) {
   app.get('/api/logs', async (request, reply) => {
+    const prisma = app.prisma as PrismaClient
     const { page, perPage, level, levels, service, search, startDate, endDate } = getLogsQuerySchema.parse(request.query)
 
     const skip = (page - 1) * perPage

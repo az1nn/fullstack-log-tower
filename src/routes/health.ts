@@ -1,8 +1,9 @@
 import { FastifyInstance } from 'fastify'
-import { prisma } from '../lib/prisma'
+import { PrismaClient } from '@prisma/client'
 
 export async function healthRoute(app: FastifyInstance) {
   app.get('/api/health', async (request, reply) => {
+    const prisma = app.prisma as PrismaClient
     const timestamp = new Date().toISOString()
     try {
       await prisma.$queryRaw`SELECT 1`
