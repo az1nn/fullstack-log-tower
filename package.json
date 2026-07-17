@@ -21,7 +21,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build:ui": "npm --prefix frontend run build && node -e \"const fs=require('fs'),path=require('path');fs.rmSync('dist/ui',{recursive:true,force:true});fs.cpSync('frontend/dist','dist/ui',{recursive:true});console.log('Bundled frontend UI into dist/ui')\"",
-    "build": "tsc -p tsconfig.json && npm run build:ui",
+    "build": "tsc -p tsconfig.build.json && npm run build:ui",
     "start": "tsx src/server.ts",
     "prepublishOnly": "npm run build",
     "prisma:generate": "prisma generate",
