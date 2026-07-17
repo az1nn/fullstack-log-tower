@@ -1,5 +1,5 @@
 ## Purpose
-Provide local development infrastructure: a PostgreSQL database via Docker Compose and Prisma as the migration source of truth.
+Provide local development infrastructure: a PostgreSQL database via Docker Compose, full-stack containerization (db + backend + frontend), and Prisma as the migration source of truth.
 
 ## Requirements
 
@@ -76,4 +76,15 @@ The system SHALL deploy the React frontend to Vercel, pointing its API client at
 #### Scenario: Frontend talks to backend
 - **WHEN** the deployed frontend makes API calls
 - **THEN** requests go to `VITE_API_URL` and the backend's `CORS_ORIGINS` includes the Vercel origin
+
+### Requirement: Full-stack containerization
+The system SHALL be runnable as a complete containerized stack (database, backend, frontend) with a single command.
+
+#### Scenario: One-command stack
+- **WHEN** a user runs `docker compose up --build` at the repo root
+- **THEN** PostgreSQL, the Fastify backend (port 3333), and the React frontend (port 80, published as 8080) start on a shared network
+
+#### Scenario: Frontend proxies API to backend
+- **WHEN** the browser loads the frontend container and the SPA calls `/api/*`
+- **THEN** nginx proxies those requests to the backend container; the SPA uses a relative `/api` base URL by default, so no build-time URL or CORS is required in compose
 
