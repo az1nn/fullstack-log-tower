@@ -4,5 +4,6 @@
 -- constraint was causing every re-upload of identical content to be reported
 -- as duplicates (imported: 0), which surfaced as a broken UX. Idempotency will
 -- be re-added later with a clearer design.
-ALTER TABLE "Log" DROP CONSTRAINT "Log_upload_id_key";
-ALTER TABLE "Log" DROP COLUMN "upload_id";
+
+ALTER TABLE "Log" DROP CONSTRAINT IF EXISTS "Log_upload_id_key";
+ALTER TABLE "Log" DROP COLUMN IF EXISTS "upload_id";
