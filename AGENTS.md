@@ -183,6 +183,30 @@ The main agent is the **architect/orchestrator** and preserves its own context w
 
 The main agent only plans, decides, dispatches (parallel when independent), and integrates concise summaries. Keep raw file contents, logs, and diffs inside subagents.
 
+## Running the Stack (Docker)
+
+To bring up the full stack (db + backend + frontend) for testing/verification:
+
+```bash
+bash scripts/setup.sh          # install native Docker (if missing) + docker compose up --build
+# or, if Docker is already installed:
+docker compose up --build
+```
+
+- Frontend: http://localhost:8080  (proxies `/api/*` → backend)
+- Backend API: http://localhost:3333/api
+- Backend runs `prisma migrate deploy` on startup.
+
+Seed real data for UI checks:
+```bash
+curl -X POST "http://localhost:3333/api/seed?count=500&days=7"
+# push formatted logs (format: [timestamp] [LEVEL] message (service=name))
+curl -X POST "http://localhost:3333/api/logs/push" -H "Content-Type: text/plain" \
+  --data-binary $'[2026-07-18T10:01:12Z] [ERROR] boo (service=api)'
+```
+
+Logs live in `screenshots/` (dashboard/logs/upload PNGs) generated against real data.
+
 ## Session Recovery (Abort Flow)
 
 When a session goes bad, return to a clean known-good state:

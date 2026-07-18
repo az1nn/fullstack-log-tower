@@ -46,8 +46,12 @@ PostgreSQL (Prisma), and explore them via a responsive React dashboard with
 filters, search, pagination, and statistical charts.
 
 ## Run the whole stack with Docker (recommended)
-Requires Docker. One command brings up PostgreSQL, the Fastify backend, and the
-React frontend:
+Requires Docker. One command installs native Docker (if missing), then brings up
+PostgreSQL, the Fastify backend, and the React frontend:
+```bash
+bash scripts/setup.sh
+```
+Or run the stack directly with Docker already installed:
 ```bash
 docker compose up --build
 ```
@@ -83,4 +87,16 @@ Each line of a `.txt`/`.log` file must match:
 ```
 Levels: `INFO`, `WARN`, `ERROR`, `DEBUG`, `FATAL`. Lines that don't match are
 counted as skipped and not imported.
+
+## Screenshots
+Captured from the running app with real uploaded data (seeded + pushed logs):
+
+| Page | File | Shows |
+| --- | --- | --- |
+| Dashboard | `screenshots/dashboard.png` | Metrics summary, level distribution, trends charts |
+| Logs | `screenshots/logs.png` | Paginated table with filters, search, level badges, export |
+| Upload | `screenshots/upload.png` | Drag-and-drop upload + mock-log generator |
+
+To regenerate them, point a headless browser at `http://localhost:8080`
+after `docker compose up --build` (or `bash scripts/setup.sh`).
 
