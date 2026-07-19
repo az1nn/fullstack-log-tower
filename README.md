@@ -98,5 +98,10 @@ Captured from the running app with real uploaded data (seeded + pushed logs):
 | Upload | `screenshots/upload.png` | Drag-and-drop upload + mock-log generator |
 
 To regenerate them, point a headless browser at `http://localhost:8080`
-after `docker compose up --build` (or `bash scripts/setup.sh`).
+after `docker compose up --build` (or `bash scripts/setup.sh`):
+```bash
+npm i playwright-core        # once
+npx playwright-core install chromium
+node scripts/screenshot-pages.js   # writes screenshots/*.png
+```
 
