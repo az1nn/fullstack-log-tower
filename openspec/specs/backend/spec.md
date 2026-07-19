@@ -23,8 +23,9 @@ The system SHALL accept multipart file uploads and ingest parsed log lines into 
 
 #### Scenario: Idempotency (enabled)
 - **WHEN** a client POSTs a file to `/api/logs/upload`
-- **THEN** the service derives a deterministic `upload_id` (SHA-256 hex of the raw file buffer) and stamps every parsed row with it
+- **THEN** the service streams a SHA-256 `upload_id` from the file bytes and stamps every parsed row with it
 - **AND** before inserting, the service checks whether any row with that `upload_id` already exists; if so, the whole file is counted under `duplicates` and nothing is inserted again
+- **AND** a per-`upload_id` in-memory lock serializes concurrent uploads of the same file, preventing a TOCTOU race where two simultaneous identical uploads could both pass the existence check and double-insert
 - **AND** re-uploading the same file returns `imported` `0`, `duplicates` equal to the file's row count, and a `message` indicating the file was already imported
 - **AND** rows without `upload_id` (from `/api/logs/push` or legacy seed) never collide because the `upload_id` index is non-unique and NULLs are distinct
 - **AND** the service returns 201 with `{ message, imported, skipped, duplicates }`

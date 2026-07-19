@@ -5,6 +5,16 @@ import { parseLogLine } from '../lib/parse.js'
 
 const BATCH_SIZE = 1000
 
+const uploadLocks = new Map<string, Promise<boolean>>()
+
+async function claimUpload(uploadId: string): Promise<boolean> {
+  const existing = uploadLocks.get(uploadId)
+  if (existing) return existing
+  const claimed = Promise.resolve(true)
+  uploadLocks.set(uploadId, claimed)
+  return claimed
+}
+
 export async function uploadRoutes(app: FastifyInstance) {
   app.post('/api/logs/upload', async (request, reply) => {
     const prisma = app.prisma as PrismaClient
@@ -15,50 +25,57 @@ export async function uploadRoutes(app: FastifyInstance) {
     }
 
     const chunks: Buffer[] = []
+    const hash = createHash('sha256')
     for await (const chunk of data.file) {
-      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+      chunks.push(buf)
+      hash.update(buf)
     }
     const buffer = Buffer.concat(chunks)
-
-    const uploadId = createHash('sha256').update(buffer).digest('hex')
+    const uploadId = hash.digest('hex')
 
     const logsToInsert: any[] = []
     let imported = 0
     let skipped = 0
     let duplicates = 0
 
-    const alreadyImported = (await prisma.log.count({
-      where: { upload_id: uploadId },
-    })) > 0
+    await claimUpload(uploadId)
+    try {
+      const alreadyImported = (await prisma.log.count({
+        where: { upload_id: uploadId },
+      })) > 0
 
-    const flush = async () => {
-      const count = logsToInsert.length
-      if (alreadyImported) {
-        duplicates += count
-      } else {
-        await prisma.log.createMany({ data: logsToInsert })
-        imported += count
-      }
-      logsToInsert.length = 0
-    }
-
-    const lines = buffer.toString('utf8').split(/\r?\n/)
-    for (const line of lines) {
-      const parsed = parseLogLine(line)
-
-      if (parsed) {
-        logsToInsert.push({ ...parsed, upload_id: uploadId })
-      } else if (line.trim().length > 0) {
-        skipped++
+      const flush = async () => {
+        const count = logsToInsert.length
+        if (alreadyImported) {
+          duplicates += count
+        } else {
+          await prisma.log.createMany({ data: logsToInsert })
+          imported += count
+        }
+        logsToInsert.length = 0
       }
 
-      if (logsToInsert.length >= BATCH_SIZE) {
+      const lines = buffer.toString('utf8').split(/\r?\n/)
+      for (const line of lines) {
+        const parsed = parseLogLine(line)
+
+        if (parsed) {
+          logsToInsert.push({ ...parsed, upload_id: uploadId })
+        } else if (line.trim().length > 0) {
+          skipped++
+        }
+
+        if (logsToInsert.length >= BATCH_SIZE) {
+          await flush()
+        }
+      }
+
+      if (logsToInsert.length > 0) {
         await flush()
       }
-    }
-
-    if (logsToInsert.length > 0) {
-      await flush()
+    } finally {
+      uploadLocks.delete(uploadId)
     }
 
     const message =
