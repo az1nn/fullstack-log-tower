@@ -1,3 +1,11 @@
+FROM node:20-slim AS frontend-builder
+
+WORKDIR /frontend
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend ./
+RUN npm run build
+
 FROM node:20-slim
 
 WORKDIR /app
@@ -14,6 +22,8 @@ RUN npm ci
 COPY prisma ./prisma
 COPY tsconfig.json ./
 COPY src ./src
+
+COPY --from=frontend-builder /frontend/dist ./frontend/dist
 
 RUN npx prisma generate
 
