@@ -1,5 +1,5 @@
 import { useState, ChangeEvent, FormEvent, DragEvent } from 'react';
-import { Upload as UploadIcon, CheckCircle, AlertCircle, FilePlus, X } from 'lucide-react';
+import { Upload as UploadIcon, CheckCircle, AlertCircle, AlertTriangle, FilePlus, X } from 'lucide-react';
 import { api } from '../lib/axios';
 import { generateMockLogs } from '../lib/mockLogs';
 
@@ -10,7 +10,7 @@ export function Upload() {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'success' | 'error' | 'duplicate'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [validationError, setValidationError] = useState('');
 
@@ -109,9 +109,15 @@ export function Upload() {
           }
         },
       });
-      setStatus('success');
       const imported = response.data.imported ?? 0;
-      setSuccessMessage(`${imported} log(s) importado(s) com sucesso!`);
+      const duplicates = response.data.duplicates ?? 0;
+      if (duplicates > 0 && imported === 0) {
+        setStatus('duplicate');
+        setSuccessMessage('Este arquivo já foi importado anteriormente.');
+      } else {
+        setStatus('success');
+        setSuccessMessage(`${imported} log(s) importado(s) com sucesso!`);
+      }
       setGenMessage('');
       setFile(null);
     } catch (error: any) {
@@ -190,6 +196,11 @@ export function Upload() {
         <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-lg flex items-center gap-2">
           <AlertCircle className="w-5 h-5" />
           <span>{errorMessage || 'Erro ao processar o arquivo. Verifique o formato e tente novamente.'}</span>
+        </div>
+      ) : status === 'duplicate' ? (
+        <div className="mt-4 p-4 bg-amber-50 text-amber-700 rounded-lg flex items-center gap-2">
+          <AlertTriangle className="w-5 h-5" />
+          <span>{successMessage}</span>
         </div>
       ) : status === 'success' ? (
         <div className="mt-4 p-4 bg-emerald-50 text-emerald-700 rounded-lg flex items-center gap-2">

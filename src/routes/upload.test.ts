@@ -38,9 +38,15 @@ vi.mock('../lib/prisma', () => ({ prisma: mockPrisma }))
 
 describe('upload route', () => {
   let app: ReturnType<typeof fastify>
+  const capturedCreateMany: any[] = []
 
   beforeEach(() => {
     setupPrismaMock(mockPrisma)
+    capturedCreateMany.length = 0
+    mockPrisma.log.createMany.mockImplementation(async (args: any) => {
+      capturedCreateMany.push(JSON.parse(JSON.stringify(args.data)))
+      return { count: (args.data as unknown[]).length }
+    })
     app = fastify()
     app.register(multipart)
     app.register(uploadRoutes)
@@ -111,18 +117,17 @@ describe('upload route', () => {
     const json = res.json()
     expect(json.imported).toBe(1)
     expect(json.skipped).toBe(0)
-    expect(mockPrisma.log.createMany).toHaveBeenCalledWith({
-      data: [
-        expect.objectContaining({
-          level: 'INFO',
-          message: 'hello',
-          service: 'auth',
-        }),
-      ],
+    expect(json.duplicates).toBe(0)
+    expect(capturedCreateMany.length).toBeGreaterThan(0)
+    expect(capturedCreateMany[0][0]).toMatchObject({
+      level: 'INFO',
+      message: 'hello',
+      service: 'auth',
+      upload_id: expect.any(String),
     })
   })
 
-  it('re-uploading the same file inserts again (idempotency disabled)', async () => {
+  it('re-uploading the same file reports duplicates (idempotency enabled)', async () => {
     const boundary = '----testboundary'
     const body = buildMultipartBody(FILE_LINES)
 
@@ -137,6 +142,8 @@ describe('upload route', () => {
     expect(first.statusCode).toBe(201)
     expect(first.json().imported).toBe(2)
 
+    mockPrisma.log.count.mockResolvedValueOnce(2)
+
     const second = await app.inject({
       method: 'POST',
       url: '/api/logs/upload',
@@ -146,7 +153,8 @@ describe('upload route', () => {
       payload: body,
     })
     expect(second.statusCode).toBe(201)
-    expect(second.json().imported).toBe(2)
+    expect(second.json().imported).toBe(0)
+    expect(second.json().duplicates).toBe(2)
     expect(second.json().skipped).toBe(1)
   })
 })

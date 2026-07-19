@@ -11,7 +11,11 @@ const seedQuerySchema = z.object({
 export async function seedRoutes(app: FastifyInstance) {
   app.post('/api/seed', async (request, reply) => {
     const prisma = app.prisma as PrismaClient
-    const { count, days } = seedQuerySchema.parse(request.query)
+    const parsed = seedQuerySchema.safeParse(request.query)
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'Invalid query parameters', issues: parsed.error.issues })
+    }
+    const { count, days } = parsed.data
 
     const logs = generateLogs(count, days)
 

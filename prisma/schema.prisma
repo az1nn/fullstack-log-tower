@@ -21,6 +21,7 @@ model Log {
   level     LogLevel
   message   String
   service   String?
+  upload_id String?
   createdAt DateTime @default(now())
 
   @@index([timestamp])

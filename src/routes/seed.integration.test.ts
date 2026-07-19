@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify'
-import { beforeAll, afterAll, describe, it, expect } from 'vitest'
+import { beforeAll, beforeEach, afterAll, describe, it, expect } from 'vitest'
 import { seedRoutes } from '../routes/seed.js'
 import { getLogsRoute } from '../routes/get-logs.js'
 import { prisma } from '../lib/prisma.js'
@@ -25,6 +25,7 @@ beforeAll(async () => {
   }
   const fastify = (await import('fastify')).default
   app = fastify({ logger: false })
+  app.decorate('prisma', prisma)
   app.register(seedRoutes)
   app.register(getLogsRoute)
   await app.ready()
@@ -36,6 +37,11 @@ afterAll(async () => {
   await prisma.log.deleteMany()
   await prisma.$disconnect()
   await app.close()
+})
+
+beforeEach(async () => {
+  if (!dbAvailable) return
+  await prisma.log.deleteMany()
 })
 
 describe('integration: mock log generation against real Postgres', () => {

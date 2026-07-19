@@ -61,16 +61,16 @@ The system SHALL send a selected `.txt`/`.log` file via multipart/form-data to `
 - **THEN** the system downloads the generated lines as `mock-logs.log` via a Blob object URL; the user may import it manually through the dropzone
 
 #### Scenario: Duplicate import message
-- **WHEN** an upload (generated or dropped) is fully duplicate (imported 0, duplicates > 0)
-- **THEN** the success banner shows "Arquivo já importado anteriormente (logs duplicados ignorados)."
+- **WHEN** an upload response has `duplicates > 0` and `imported === 0`
+- **THEN** the page shows an amber "already imported" banner stating the file was already uploaded, instead of the emerald success banner
 
 #### Scenario: Mock log format validity
 - **WHEN** the generated `mock-logs.log` is later uploaded via the dropzone
 - **THEN** every line is parsed by the existing upload parser (levels from `INFO, WARN, ERROR, DEBUG, FATAL`; optional `service=` suffix)
 
-#### Scenario: Generated logs are always fresh (never dedupe)
-- **WHEN** the user generates mock logs (and imports or re-uploads them)
-- **THEN** the rows are always inserted (idempotency is currently disabled on the backend, so re-uploads are not dropped as duplicates)
+#### Scenario: Re-uploading an identical file is deduped
+- **WHEN** the user re-uploads a file whose content is identical to a prior upload
+- **THEN** the backend reports `imported: 0` / `duplicates: N` and the page shows the amber "already imported" banner
 
 ### Requirement: Frontend OpenTelemetry tracing
 The system SHALL initialize OpenTelemetry in the browser, exporting traces via OTLP/HTTP when `VITE_OTEL_EXPORTER_OTLP_ENDPOINT` is configured; when unset, tracing is a no-op so no external service is required.

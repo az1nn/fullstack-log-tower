@@ -11,7 +11,7 @@ The system SHALL accept multipart file uploads and ingest parsed log lines into 
 - **THEN** each line matching `\[(timestamp)\] \[(level)\] (message)( \(service=(name)\))?` is parsed, validated, and inserted in batches of 1000
 - **AND** an optional trailing `(service=name)` suffix is captured into the `service` column
 - **AND** lines that do not match the pattern are counted as skipped (not inserted, not failing the request)
-- **AND** the service returns 201 with `{ message, imported: number, skipped: number }`
+- **AND** the service returns 201 with `{ message, imported: number, skipped: number, duplicates: number }`
 
 #### Scenario: Missing file
 - **WHEN** a client POSTs to `/api/logs/upload` without a file
@@ -21,10 +21,13 @@ The system SHALL accept multipart file uploads and ingest parsed log lines into 
 - **WHEN** an uploaded line carries a level not in the `LogLevel` enum (e.g. `TRACE`)
 - **THEN** that level is normalized to `INFO` and the line is still imported (counted in `imported`, not `skipped`)
 
-#### Scenario: Idempotency (currently disabled)
+#### Scenario: Idempotency (enabled)
 - **WHEN** a client POSTs a file to `/api/logs/upload`
-- **THEN** every parsed line is inserted; re-uploading the same file inserts the rows again (no dedupe)
-- **RATIONALE:** idempotency (SHA-256 `upload_id` unique column + P2002 handling) was removed because it surfaced as a broken UX — re-importing generated or identical logs returned `imported: 0` / `duplicates: N` with no clear reason, making it look like logs were lost. Idempotency will be re-added later with a clearer design (e.g. an explicit "replace/upsert" option or a visible duplicate report). The `upload_id` column and its unique index were dropped in migration `2_drop_upload_id`.
+- **THEN** the service derives a deterministic `upload_id` (SHA-256 hex of the raw file buffer) and stamps every parsed row with it
+- **AND** before inserting, the service checks whether any row with that `upload_id` already exists; if so, the whole file is counted under `duplicates` and nothing is inserted again
+- **AND** re-uploading the same file returns `imported` `0`, `duplicates` equal to the file's row count, and a `message` indicating the file was already imported
+- **AND** rows without `upload_id` (from `/api/logs/push` or legacy seed) never collide because the `upload_id` index is non-unique and NULLs are distinct
+- **AND** the service returns 201 with `{ message, imported, skipped, duplicates }`
 
 ### Requirement: List and filter logs
 The system SHALL return paginated logs with optional level, text search, and date-range filters.
