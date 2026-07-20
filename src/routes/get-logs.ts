@@ -49,6 +49,7 @@ export async function getLogsRoute(app: FastifyInstance) {
   }, async (request, reply) => {
     const prisma = app.prisma as PrismaClient
     const { page, perPage, level, levels, service, search, startDate, endDate } = getLogsQuerySchema.parse(request.query)
+    console.log('DEBUG_GETLOGS', JSON.stringify({ rawQuery: request.query, level, levels, where: whereClause }))
 
     const skip = (page - 1) * perPage
     const whereClause: any = {}
