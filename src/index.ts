@@ -36,7 +36,15 @@ declare module 'fastify' {
 }
 
 export function createLogTower(opts: LogTowerOptions = {}): FastifyInstance {
-  const app = fastify({ logger: true })
+  const app = fastify({
+    logger: true,
+    ajv: {
+      customOptions: {
+        allowUnionTypes: true,
+        strict: false,
+      },
+    },
+  })
 
   app.decorate('prisma', opts.prisma ?? getDefaultPrisma())
 
