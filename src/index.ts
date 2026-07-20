@@ -158,7 +158,12 @@ export async function startLogTower(app: FastifyInstance, port?: number): Promis
     console.log('Running database migrations...')
     execSync('npx prisma migrate deploy', { stdio: 'inherit' })
   } catch (err) {
-    console.error('Migration failed, continuing startup:', err)
+    console.error('Migration failed, attempting schema sync via db push:', err)
+    try {
+      execSync('npx prisma db push --skip-generate', { stdio: 'inherit' })
+    } catch (err2) {
+      console.error('Schema sync failed, continuing startup (DB may be out of sync):', err2)
+    }
   }
 
   await app.listen({ port: PORT, host: '0.0.0.0' })
