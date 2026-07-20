@@ -13,7 +13,7 @@ const pushItemSchema = z.object({
 })
 
 export async function pushRoutes(app: FastifyInstance) {
-  app.post('/api/logs/push', async (request, reply) => {
+  app.post('/api/logs/push', { config: { bodyLimit: 5 * 1024 * 1024 } }, async (request, reply) => {
     const prisma = app.prisma as PrismaClient
     const contentType = String(request.headers['content-type'] ?? '')
 

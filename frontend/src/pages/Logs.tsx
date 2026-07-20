@@ -56,7 +56,7 @@ export function Logs() {
       setTotalPages(response.data.meta.totalPages);
     } catch (err) {
       if (isNetworkError(err)) {
-        setError('Não foi possível conectar ao servidor. Verifique se o backend está rodando em http://localhost:3333.');
+        setError('Não foi possível conectar ao servidor. Verifique sua conexão e se a API está acessível.');
       } else {
         setError('Erro ao carregar os logs. Tente novamente.');
       }

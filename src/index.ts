@@ -38,8 +38,13 @@ export function createLogTower(opts: LogTowerOptions = {}): FastifyInstance {
 
   app.decorate('prisma', opts.prisma ?? getDefaultPrisma())
 
+  const corsOrigins = opts.corsOrigins ??
+    (process.env.CORS_ORIGINS
+      ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+      : ['http://localhost:5173'])
+
   app.register(cors, {
-    origin: opts.corsOrigins ?? ['http://localhost:5173'],
+    origin: corsOrigins,
   })
 
   app.register(multipart, {

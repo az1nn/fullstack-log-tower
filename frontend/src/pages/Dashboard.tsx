@@ -79,7 +79,7 @@ export function Dashboard() {
       setData(response.data);
     } catch (err) {
       if (isNetworkError(err)) {
-        setError('Não foi possível conectar ao servidor. Verifique se o backend está rodando em http://localhost:3333.');
+        setError('Não foi possível conectar ao servidor. Verifique sua conexão e se a API está acessível.');
       } else {
         setError('Erro ao carregar as métricas. Tente novamente.');
       }
