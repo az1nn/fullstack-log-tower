@@ -22,7 +22,47 @@ const getLogsQuerySchema = z.object({
 })
 
 export async function getLogsRoute(app: FastifyInstance) {
-  app.get('/api/logs', async (request, reply) => {
+  app.get('/api/logs', {
+    schema: {
+      description: 'Query logs with pagination and filters',
+      tags: ['logs'],
+      querystring: {
+        type: 'object',
+        properties: {
+          page: { type: 'string', description: '1-based page number (default 1)' },
+          perPage: { type: 'string', description: 'Items per page, 1–100 (default 20)' },
+          level: { type: 'string', enum: ['INFO', 'WARN', 'ERROR', 'DEBUG', 'FATAL'], description: 'Single level filter' },
+          levels: {
+            type: ['string', 'array'],
+            description: 'One or more levels: repeat the param or pass comma-separated (e.g. ERROR,WARN). Takes precedence over `level`.',
+          },
+          service: { type: 'string', description: 'Case-insensitive service substring' },
+          search: { type: 'string', description: 'Case-insensitive message substring' },
+          startDate: { type: 'string', format: 'date-time', description: 'ISO 8601 lower bound (inclusive)' },
+          endDate: { type: 'string', format: 'date-time', description: 'ISO 8601 upper bound (inclusive)' },
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            data: { type: 'array', items: { type: 'object' } },
+            meta: {
+              type: 'object',
+              properties: {
+                totalItems: { type: 'number' },
+                totalPages: { type: 'number' },
+                currentPage: { type: 'number' },
+                perPage: { type: 'number' },
+                hasNextPage: { type: 'boolean' },
+                hasPreviousPage: { type: 'boolean' },
+              },
+            },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const prisma = app.prisma as PrismaClient
     const { page, perPage, level, levels, service, search, startDate, endDate } = getLogsQuerySchema.parse(request.query)
 

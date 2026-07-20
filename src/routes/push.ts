@@ -13,7 +13,27 @@ const pushItemSchema = z.object({
 })
 
 export async function pushRoutes(app: FastifyInstance) {
-  app.post('/api/logs/push', { config: { bodyLimit: 5 * 1024 * 1024 } }, async (request, reply) => {
+  app.post('/api/logs/push', {
+    config: { bodyLimit: 5 * 1024 * 1024 },
+    schema: {
+      description: 'Push logs directly (text/plain newline-delimited or application/json array)',
+      tags: ['logs'],
+      consumes: ['text/plain', 'application/json'],
+      response: {
+        201: {
+          type: 'object',
+          properties: {
+            imported: { type: 'number' },
+            skipped: { type: 'number' },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: { error: { type: 'string' } },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const prisma = app.prisma as PrismaClient
     const contentType = String(request.headers['content-type'] ?? '')
 

@@ -9,7 +9,33 @@ const seedQuerySchema = z.object({
 })
 
 export async function seedRoutes(app: FastifyInstance) {
-  app.post('/api/seed', async (request, reply) => {
+  app.post('/api/seed', {
+    schema: {
+      description: 'Generate and seed mock logs',
+      tags: ['seed'],
+      querystring: {
+        type: 'object',
+        properties: {
+          count: { type: 'string', description: 'Number of logs to generate, 1–50000 (default 1000)' },
+          days: { type: 'string', description: 'Spread generated logs across this many days, 1–365 (default 30)' },
+        },
+      },
+      response: {
+        201: {
+          type: 'object',
+          properties: {
+            message: { type: 'string' },
+            imported: { type: 'number' },
+            total: { type: 'number' },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: { error: { type: 'string' } },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const prisma = app.prisma as PrismaClient
     const parsed = seedQuerySchema.safeParse(request.query)
     if (!parsed.success) {

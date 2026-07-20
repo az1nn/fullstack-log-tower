@@ -9,7 +9,61 @@ const metricsQuerySchema = z.object({
 })
 
 export async function metricsRoute(app: FastifyInstance) {
-  app.get('/api/metrics', async (request, reply) => {
+  app.get('/api/metrics', {
+    schema: {
+      description: 'Get aggregated log metrics',
+      tags: ['metrics'],
+      querystring: {
+        type: 'object',
+        properties: {
+          startDate: { type: 'string', format: 'date-time', description: 'ISO 8601 lower bound (inclusive)' },
+          endDate: { type: 'string', format: 'date-time', description: 'ISO 8601 upper bound (inclusive)' },
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            summary: {
+              type: 'object',
+              properties: { total: { type: 'number' } },
+            },
+            distribution: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  level: { type: 'string' },
+                  count: { type: 'number' },
+                },
+              },
+            },
+            trends: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  date: { type: 'string' },
+                  count: { type: 'number' },
+                },
+              },
+            },
+            trendsByLevel: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  date: { type: 'string' },
+                  level: { type: 'string' },
+                  count: { type: 'number' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const prisma = app.prisma as PrismaClient
     const { startDate, endDate } = metricsQuerySchema.parse(request.query)
 

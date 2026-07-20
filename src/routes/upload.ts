@@ -16,7 +16,28 @@ async function claimUpload(uploadId: string): Promise<boolean> {
 }
 
 export async function uploadRoutes(app: FastifyInstance) {
-  app.post('/api/logs/upload', async (request, reply) => {
+  app.post('/api/logs/upload', {
+    schema: {
+      description: 'Upload a log file (multipart form-data) for ingestion',
+      consumes: ['multipart/form-data'],
+      tags: ['logs'],
+      response: {
+        201: {
+          type: 'object',
+          properties: {
+            message: { type: 'string' },
+            imported: { type: 'number' },
+            skipped: { type: 'number' },
+            duplicates: { type: 'number' },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: { error: { type: 'string' } },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const prisma = app.prisma as PrismaClient
     const data = await request.file()
 

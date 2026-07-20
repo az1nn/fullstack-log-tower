@@ -84,6 +84,40 @@ The system SHALL expose `GET /api/health` returning service liveness and databas
 - **WHEN** Render performs its health check
 - **THEN** it targets `/api/health` (set via `healthCheckPath` in render.yaml)
 
+### Requirement: Documented API contracts (OpenAPI/Swagger)
+The system SHALL expose its HTTP contracts via `@fastify/swagger` + `@fastify/swagger-ui` at `/docs` (UI) and `/docs/json` (OpenAPI document), and the route `schema` definitions SHALL match the request/response shapes validated by the route handlers (and the unit tests).
+
+Request parameters are documented as **string-typed** `querystring` schemas (query values arrive as strings over the wire and are coerced/parsed by each route's Zod schema). Response schemas describe the exact JSON returned.
+
+#### Scenario: GET /api/logs contract
+- **WHEN** a client inspects the OpenAPI document for `GET /api/logs`
+- **THEN** the `querystring` schema documents `page` (1-based, default 1), `perPage` (1–100, default 20), `level` (enum of the five levels), `levels` (string or array; comma-separated or repeated params; takes precedence over `level`), `service` (case-insensitive substring), `search` (case-insensitive substring), `startDate` and `endDate` (ISO-8601 datetimes)
+- **AND** the `200` response schema documents `{ data: object[], meta: { totalItems, totalPages, currentPage, perPage, hasNextPage, hasPreviousPage } }`
+
+#### Scenario: GET /api/metrics contract
+- **WHEN** a client inspects the OpenAPI document for `GET /api/metrics`
+- **THEN** the `querystring` schema documents optional `startDate` and `endDate` (ISO-8601 datetimes)
+- **AND** the `200` response schema documents `{ summary: { total }, distribution: { level, count }[], trends: { date, count }[], trendsByLevel: { date, level, count }[] }`
+
+#### Scenario: POST /api/seed contract
+- **WHEN** a client inspects the OpenAPI document for `POST /api/seed`
+- **THEN** the `querystring` schema documents `count` (1–50000, default 1000) and `days` (1–365, default 30)
+- **AND** the `201` response schema documents `{ message, imported, total }`
+
+#### Scenario: POST /api/logs/upload contract
+- **WHEN** a client inspects the OpenAPI document for `POST /api/logs/upload`
+- **THEN** the route is tagged `multipart/form-data` (consumes) with a `file` field
+- **AND** the `201` response schema documents `{ message, imported, skipped, duplicates }`
+
+#### Scenario: POST /api/logs/push contract
+- **WHEN** a client inspects the OpenAPI document for `POST /api/logs/push`
+- **THEN** the route is tagged `text/plain` and `application/json` (consumes)
+- **AND** the `201` response schema documents `{ imported, skipped }`
+
+#### Scenario: GET /api/health contract
+- **WHEN** a client inspects the OpenAPI document for `GET /api/health`
+- **THEN** the `200` response schema documents `{ status, db, timestamp }`
+
 ### Requirement: OpenTelemetry tracing (backend)
 The system SHALL initialize OpenTelemetry at startup, auto-instrumenting HTTP and Fastify requests, with a resource named `fullstack-log-tower-api`.
 

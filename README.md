@@ -88,6 +88,46 @@ Each line of a `.txt`/`.log` file must match:
 Levels: `INFO`, `WARN`, `ERROR`, `DEBUG`, `FATAL`. Lines that don't match are
 counted as skipped and not imported.
 
+## API reference (Swagger)
+The backend exposes an interactive OpenAPI/Swagger UI:
+- Local: http://localhost:3333/docs
+- Hosted: https://fullstack-log-tower-api.onrender.com/docs
+
+The raw OpenAPI document is served at `/docs/json`. All routes
+(`/api/logs/upload`, `/api/logs`, `/api/metrics`, `/api/seed`, `/api/logs/push`,
+`/api/health`) are documented with their query/body/response shapes.
+
+## Observability (OpenTelemetry)
+The backend instruments logs and traces with OpenTelemetry. Tracing is enabled
+via the `@fastify/otel` instrumentation plus Node auto-instrumentations; spans
+are exported with an OTLP HTTP exporter when configured, otherwise they print
+to the console.
+
+### Tracing
+- Controlled by `OTEL_EXPORTER_OTLP_ENDPOINT`. If set, spans are sent to that
+  OTLP endpoint (the `/v1/traces` suffix is added automatically if missing);
+  if unset, a `ConsoleSpanExporter` is used so traces are visible in the logs.
+- The Fastify instrumentation (`registerOnInitialization: true`) captures
+  per-request spans. Incoming requests that carry a W3C `traceparent` header
+  are correlated, so the frontend's axios client propagates its trace context
+  to the backend.
+
+### Logs & request correlation
+- Every response gets an `X-Request-Id` header (Fastify `request.id`).
+- A structured log line is emitted `onResponse` with
+  `reqId`, `method`, `route`, `statusCode`, `durationMs`, and the incoming
+  `traceId` (from the `traceparent` header, if present).
+- The React frontend reads `X-Request-Id` from each response and stores the
+  last value (`getLastRequestId()` in `frontend/src/lib/axios.ts`), so a user
+  can copy the request id from the browser console and match it to the backend
+  logs for a given operation.
+
+### Environment variables
+| Variable | Effect |
+| --- | --- |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP traces endpoint (e.g. `http://collector:4318`); unset → console exporter |
+| `NODE_ENV` | Reported as `deployment.environment` in the OTel resource |
+
 ## Screenshots
 Captured from the running app with real uploaded data (seeded + pushed logs):
 

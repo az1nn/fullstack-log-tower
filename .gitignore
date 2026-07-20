@@ -1,7 +1,29 @@
 # Dependencies
 node_modules/
-.pnp
+.pnp/
 .pnp.js
+package-lock.json
+
+# Build / tooling artifacts
+*.tsbuildinfo
+*.cache
+.eslintcache
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Coverage / reports
+coverage/
+.nyc_output/
+*.lcov
+report.json
+
+# Temp / local
+*.tmp
+.tmp/
 
 # Build output
 dist/

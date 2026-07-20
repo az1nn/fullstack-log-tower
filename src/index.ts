@@ -13,6 +13,8 @@ import { PrismaClient } from '@prisma/client'
 import { getDefaultPrisma } from './lib/prisma.js'
 import { startTracing } from './lib/otel.js'
 import { registerRequestLogger } from './lib/request-logger.js'
+import swagger from '@fastify/swagger'
+import swaggerUi from '@fastify/swagger-ui'
 import { uploadRoutes } from './routes/upload.js'
 import { getLogsRoute } from './routes/get-logs.js'
 import { metricsRoute } from './routes/metrics.js'
@@ -51,6 +53,23 @@ export function createLogTower(opts: LogTowerOptions = {}): FastifyInstance {
     limits: { fileSize: (opts.maxFileSizeMb ?? 100) * 1024 * 1024 },
   })
 
+  app.register(swagger, {
+    openapi: {
+      info: {
+        title: 'Log Tower API',
+        version: '1.0.0',
+        description: 'Log ingestion, query, and metrics API',
+      },
+      servers: [{ url: '/' }],
+      components: { securitySchemes: {} },
+    },
+  })
+
+  app.register(swaggerUi, {
+    routePrefix: '/docs',
+    uiConfig: { docExpansion: 'full' },
+  })
+
   app.register(uploadRoutes)
   app.register(getLogsRoute)
   app.register(metricsRoute)
@@ -69,7 +88,11 @@ export function createLogTower(opts: LogTowerOptions = {}): FastifyInstance {
     }
 
     app.log.error({ err: error, reqId: request.id }, error.message)
-    return reply.status(500).send({ message: 'Erro interno do servidor.' })
+    const statusCode =
+      typeof error.statusCode === 'number' && error.statusCode >= 400
+        ? error.statusCode
+        : 500
+    return reply.status(statusCode).send({ message: 'Erro interno do servidor.' })
   })
 
   const bundledUiDir = path.join(__dirname, 'ui')
