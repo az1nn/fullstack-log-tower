@@ -33,8 +33,7 @@ export async function getLogsRoute(app: FastifyInstance) {
           perPage: { type: 'string', description: 'Items per page, 1–100 (default 20)' },
           level: { type: 'string', enum: ['INFO', 'WARN', 'ERROR', 'DEBUG', 'FATAL'], description: 'Single level filter' },
           levels: {
-            type: ['string', 'array'],
-            description: 'One or more levels: repeat the param or pass comma-separated (e.g. ERROR,WARN). Takes precedence over `level`.',
+            description: 'One or more levels: repeat the param or pass comma-separated (e.g. ERROR,WARN). Takes precedence over `level`. Accepts a string or an array.',
           },
           service: { type: 'string', description: 'Case-insensitive service substring' },
           search: { type: 'string', description: 'Case-insensitive message substring' },
