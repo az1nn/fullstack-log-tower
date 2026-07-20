@@ -127,6 +127,24 @@ In CI (`.github/workflows/ci.yml`) this runs automatically on every push/PR.
 Default `npm test` (mocked) always passes without Docker; integration runs only
 where Postgres is available.
 
+### Integration test DB-state rule (avoid flaky failures)
+The three integration files (`integration.test.ts`, `seed.integration.test.ts`,
+`upload.integration.test.ts`) share ONE Postgres database and each build their own
+`fastify()` app. On a persistent/durable CI runner (or any reuse of the `db-test`
+container) leftover committed rows from a previous run accumulate and make
+assertions like "GET /api/logs?level=ERROR returns only ERROR rows" flaky.
+
+**Rule:** the integration suite MUST start from an exact, empty `Log` table.
+`vitest.integration.config.ts` uses a `globalSetup` (`vitest.integration.setup.ts`)
+that `TRUNCATE TABLE "Log" RESTART IDENTITY CASCADE;` before the suite runs — do NOT
+remove it. Each test file still `deleteMany()` in its own `beforeAll`/`afterAll`; the
+globalSetup is the guaranteed reset. If you add more integration files, rely on this
+reset and never assume the DB is empty at file start.
+
+**Never "fix" integration flakiness by committing `package-lock.json` / pinning deps.**
+That only masks the symptom; the root cause is DB state, not dependency versions. The
+repo intentionally does NOT commit lockfiles (CI uses `npm install`, no cache).
+
 ## Build & Deploy (Docker / Render / Vercel)
 
 ### Local Docker
