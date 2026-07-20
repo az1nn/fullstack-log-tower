@@ -85,18 +85,19 @@ The system SHALL expose `GET /api/health` returning service liveness and databas
 - **THEN** it targets `/api/health` (set via `healthCheckPath` in render.yaml)
 
 ### Requirement: Documented API contracts (OpenAPI/Swagger)
-The system SHALL expose its HTTP contracts via `@fastify/swagger` + `@fastify/swagger-ui` at `/docs` (UI) and `/docs/json` (OpenAPI document), and the route `schema` definitions SHALL match the request/response shapes validated by the route handlers (and the unit tests).
+The system SHALL expose its HTTP contracts via `@fastify/swagger` + `@fastify/swagger-ui` at `/docs` (UI) and `/docs/json` (OpenAPI document). Response shapes SHALL be described by the route `schema` `response` definitions (and match the JSON the handlers return and the unit/integration tests assert).
 
-Request parameters are documented as **string-typed** `querystring` schemas (query values arrive as strings over the wire and are coerced/parsed by each route's Zod schema). Response schemas describe the exact JSON returned.
+Request parameters are validated by each route's **Zod** schema (not by a Fastify `querystring` schema). Rationale: a Fastify `querystring` schema makes Fastify validate/serialize the query, and that behavior varies across the Fastify/ajv versions resolved by a floating `npm install`, which broke the `level` filter in CI. Keeping validation in Zod (the pre-Swagger behavior) is version-independent. The request parameters are still documented in this spec and in `README.md`; the OpenAPI document shows endpoints + response bodies.
 
 #### Scenario: GET /api/logs contract
 - **WHEN** a client inspects the OpenAPI document for `GET /api/logs`
-- **THEN** the `querystring` schema documents `page` (1-based, default 1), `perPage` (1–100, default 20), `level` (enum of the five levels), `levels` (string or array; comma-separated or repeated params; takes precedence over `level`), `service` (case-insensitive substring), `search` (case-insensitive substring), `startDate` and `endDate` (ISO-8601 datetimes)
-- **AND** the `200` response schema documents `{ data: object[], meta: { totalItems, totalPages, currentPage, perPage, hasNextPage, hasPreviousPage } }`
+- **THEN** the `200` response schema documents `{ data: object[], meta: { totalItems, totalPages, currentPage, perPage, hasNextPage, hasPreviousPage } }`
+- **AND** the accepted query params (validated by Zod) are: `page` (1-based, default 1), `perPage` (1–100, default 20), `level` (enum of the five levels), `levels` (string or array; comma-separated or repeated params; takes precedence over `level`), `service` (case-insensitive substring), `search` (case-insensitive substring), `startDate` and `endDate` (ISO-8601 datetimes)
 
 #### Scenario: GET /api/metrics contract
 - **WHEN** a client inspects the OpenAPI document for `GET /api/metrics`
-- **THEN** the `querystring` schema documents optional `startDate` and `endDate` (ISO-8601 datetimes)
+- **THEN** the `200` response schema documents `{ summary, distribution, trends, trendsByLevel }`
+- **AND** the accepted query params (validated by Zod) are optional `startDate` and `endDate` (ISO-8601 datetimes)
 - **AND** the `200` response schema documents `{ summary: { total }, distribution: { level, count }[], trends: { date, count }[], trendsByLevel: { date, level, count }[] }`
 
 #### Scenario: POST /api/seed contract

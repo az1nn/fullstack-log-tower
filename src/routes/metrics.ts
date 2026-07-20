@@ -13,13 +13,6 @@ export async function metricsRoute(app: FastifyInstance) {
     schema: {
       description: 'Get aggregated log metrics',
       tags: ['metrics'],
-      querystring: {
-        type: 'object',
-        properties: {
-          startDate: { type: 'string', format: 'date-time', description: 'ISO 8601 lower bound (inclusive)' },
-          endDate: { type: 'string', format: 'date-time', description: 'ISO 8601 upper bound (inclusive)' },
-        },
-      },
       response: {
         200: {
           type: 'object',

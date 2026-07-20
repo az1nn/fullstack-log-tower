@@ -141,9 +141,23 @@ remove it. Each test file still `deleteMany()` in its own `beforeAll`/`afterAll`
 globalSetup is the guaranteed reset. If you add more integration files, rely on this
 reset and never assume the DB is empty at file start.
 
-**Never "fix" integration flakiness by committing `package-lock.json` / pinning deps.**
-That only masks the symptom; the root cause is DB state, not dependency versions. The
-repo intentionally does NOT commit lockfiles (CI uses `npm install`, no cache).
+### Do NOT add Fastify `querystring` request-validation schemas
+Request validation MUST live in each route's **Zod** schema, not in a Fastify
+`querystring` schema. A Fastify `querystring` schema makes Fastify validate/serialize
+the incoming query, and that behavior differs across the Fastify/ajv versions resolved
+by the floating `npm install` (the repo intentionally does NOT commit lockfiles; CI
+uses `npm install`, no cache). This version dependence broke the `GET /api/logs?level=…`
+filter in CI (it passed locally but failed on CI's resolved versions) — a classic
+flaky-integration trap. Keep `response` schemas for Swagger output docs, but validate
+input with Zod only. Document accepted request params in `README.md` and
+`openspec/specs/backend/spec.md` instead of a `querystring` schema.
+
+### Dependency lockfiles
+The repo intentionally does NOT commit `package-lock.json` / `frontend/package-lock.json`
+(CI uses `npm install`, no cache). Do NOT "fix" integration flakiness by committing a
+lockfile or pinning deps — that only masks the symptom. The real fixes are the DB-state
+`globalSetup` above and keeping request validation in Zod (no Fastify `querystring`
+schemas).
 
 ## Build & Deploy (Docker / Render / Vercel)
 
