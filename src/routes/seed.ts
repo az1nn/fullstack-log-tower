@@ -13,6 +13,10 @@ export async function seedRoutes(app: FastifyInstance) {
     schema: {
       description: 'Generate and seed mock logs',
       tags: ['seed'],
+      querystring: {
+        count: { type: 'integer', minimum: 1, maximum: 50000 },
+        days: { type: 'integer', minimum: 1, maximum: 365 },
+      },
       response: {
         201: {
           type: 'object',

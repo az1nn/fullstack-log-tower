@@ -13,6 +13,10 @@ export async function metricsRoute(app: FastifyInstance) {
     schema: {
       description: 'Get aggregated log metrics',
       tags: ['metrics'],
+      querystring: {
+        startDate: { type: 'string' },
+        endDate: { type: 'string' },
+      },
       response: {
         200: {
           type: 'object',
@@ -45,11 +49,7 @@ export async function metricsRoute(app: FastifyInstance) {
               type: 'array',
               items: {
                 type: 'object',
-                properties: {
-                  date: { type: 'string' },
-                  level: { type: 'string' },
-                  count: { type: 'number' },
-                },
+                additionalProperties: true,
               },
             },
           },

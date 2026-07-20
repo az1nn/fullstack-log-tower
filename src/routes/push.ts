@@ -19,6 +19,24 @@ export async function pushRoutes(app: FastifyInstance) {
       description: 'Push logs directly (text/plain newline-delimited or application/json array)',
       tags: ['logs'],
       consumes: ['text/plain', 'application/json'],
+      'text/plain': {
+        body: { type: 'string' },
+      },
+      'application/json': {
+        body: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              timestamp: { type: 'string' },
+              level: { type: 'string' },
+              message: { type: 'string' },
+              service: { type: 'string' },
+            },
+            required: ['timestamp', 'level', 'message'],
+          },
+        },
+      },
       response: {
         201: {
           type: 'object',

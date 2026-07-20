@@ -26,14 +26,16 @@ describe('get-logs route', () => {
     ])
     mockPrisma.log.count.mockResolvedValue(42)
     app = fastify()
-    app.setErrorHandler((error: Error, _request: unknown, reply: any) => {
+    app.setErrorHandler((error: Error & { statusCode?: number }, _request: unknown, reply: any) => {
       if (error instanceof ZodError) {
         return reply.status(400).send({
           message: 'Falha na validação dos campos.',
           errors: error.flatten().fieldErrors,
         })
       }
-      return reply.status(500).send({ message: 'Erro interno do servidor.' })
+      const statusCode =
+        typeof error.statusCode === 'number' && error.statusCode >= 400 ? error.statusCode : 500
+      return reply.status(statusCode).send({ message: error.message ?? 'Erro interno do servidor.' })
     })
     app.register(getLogsRoute)
     app.decorate('prisma', mockPrisma)

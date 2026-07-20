@@ -150,21 +150,28 @@ fields** (e.g. `level`). This is version-dependent and caused the integration
 flaky-integration trap. Always write `items: { type: 'object', additionalProperties: true }`
 (or give explicit `properties`). Verify with a serializer repro if unsure.
 
-### Do NOT add Fastify `querystring` request-validation schemas
-Request validation MUST live in each route's **Zod** schema, not in a Fastify
-`querystring` schema. A Fastify `querystring` schema makes Fastify validate/serialize
-the incoming query, and that behavior differs across the Fastify/ajv versions resolved
-by the floating `npm install` (the repo intentionally does NOT commit lockfiles; CI
-uses `npm install`, no cache). Keep `response` schemas for Swagger output docs, but
-validate input with Zod only. Document accepted request params in `README.md` and
-`openspec/specs/backend/spec.md` instead of a `querystring` schema.
+### Request schemas (`querystring` / `body`) SHOULD be present
+OpenAPI request schemas (`querystring` for GET query params, `body` for POST
+payloads) MUST be declared so Swagger UI shows fillable params and the API
+follows its own spec. Zod remains the **real** validator inside each handler; the
+Fastify schema is the contract/docs layer. This is safe because the real CI-flake
+root cause (integration `?level=ERROR` assertions failing) was the **response**
+`additionalProperties: true` serialization rule above — NOT request schemas.
+
+Caveats:
+- Do NOT add a `body` schema to **multipart upload** routes (`POST
+  /api/logs/upload`). `@fastify/multipart` makes any `body` schema 400 the
+  request (the file arrives as a stream/Buffer). Document the `file` field via
+  `consumes: ['multipart/form-data']` + `description` only.
+- For union-typed params (e.g. `levels` as string-or-array) set
+  `allowUnionTypes: true` in the ajv config (already set in `src/index.ts`).
 
 ### Dependency lockfiles
 The repo intentionally does NOT commit `package-lock.json` / `frontend/package-lock.json`
 (CI uses `npm install`, no cache). Do NOT "fix" integration flakiness by committing a
 lockfile or pinning deps — that only masks the symptom. The real fixes are the DB-state
-`globalSetup` above, the `additionalProperties: true` rule above, and keeping request
-validation in Zod (no Fastify `querystring` schemas).
+`globalSetup` above and the `additionalProperties: true` rule above (request
+validation lives in Zod; Fastify request schemas are docs-only).
 
 ## Build & Deploy (Docker / Render / Vercel)
 

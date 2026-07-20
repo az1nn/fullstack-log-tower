@@ -18,7 +18,7 @@ async function claimUpload(uploadId: string): Promise<boolean> {
 export async function uploadRoutes(app: FastifyInstance) {
   app.post('/api/logs/upload', {
     schema: {
-      description: 'Upload a log file (multipart form-data) for ingestion',
+      description: 'Upload a log file (multipart/form-data with a "file" field) for ingestion',
       consumes: ['multipart/form-data'],
       tags: ['logs'],
       response: {

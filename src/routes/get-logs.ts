@@ -26,6 +26,16 @@ export async function getLogsRoute(app: FastifyInstance) {
     schema: {
       description: 'Query logs with pagination and filters',
       tags: ['logs'],
+      querystring: {
+        page: { type: 'integer', minimum: 1 },
+        perPage: { type: 'integer', minimum: 1, maximum: 100 },
+        level: { type: 'string', enum: ['INFO', 'WARN', 'ERROR', 'DEBUG', 'FATAL'] },
+        levels: { type: ['string', 'array'], items: { type: 'string' } },
+        service: { type: 'string' },
+        search: { type: 'string' },
+        startDate: { type: 'string' },
+        endDate: { type: 'string' },
+      },
       response: {
         200: {
           type: 'object',
